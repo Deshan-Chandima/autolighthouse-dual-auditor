@@ -88,7 +88,8 @@ const els = {
   mobileCwvList: document.getElementById('mobileCwvList'),
   copyAiPromptBtn: document.getElementById('copyAiPromptBtn'),
   downloadSelectedBtn: document.getElementById('downloadSelectedBtn'),
-  downloadAiMdBtn: document.getElementById('downloadAiMdBtn')
+  downloadAiMdBtn: document.getElementById('downloadAiMdBtn'),
+  clearResultsBtn: document.getElementById('clearResultsBtn')
 };
 
 /* ==========================================================================
@@ -332,6 +333,24 @@ function bindEvents() {
         lastAuditPayload.aiReport.markdown,
         'text/markdown'
       );
+    }
+  });
+
+  // Clear Audit Results Button
+  els.clearResultsBtn.addEventListener('click', async () => {
+    lastAuditPayload = null;
+    els.desktopGauges.innerHTML = '';
+    els.mobileGauges.innerHTML = '';
+    els.desktopCwvList.innerHTML = '';
+    els.mobileCwvList.innerHTML = '';
+    els.dashboardMeta.textContent = '';
+    els.dashboardSection.classList.add('hidden');
+    clearError();
+    try {
+      await chrome.storage.local.remove(['lastAuditCache']);
+      chrome.runtime.sendMessage({ action: 'SET_BADGE', text: '' });
+    } catch (_) {
+      // ignore
     }
   });
 }
