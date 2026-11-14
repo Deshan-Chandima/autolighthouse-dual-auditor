@@ -89,8 +89,26 @@ const els = {
   copyAiPromptBtn: document.getElementById('copyAiPromptBtn'),
   downloadSelectedBtn: document.getElementById('downloadSelectedBtn'),
   downloadAiMdBtn: document.getElementById('downloadAiMdBtn'),
-  clearResultsBtn: document.getElementById('clearResultsBtn')
+  clearResultsBtn: document.getElementById('clearResultsBtn'),
+  heroArcProgress: document.getElementById('heroArcProgress'),
+  heroArcDot: document.getElementById('heroArcDot'),
+  heroScoreNumber: document.getElementById('heroScoreNumber'),
+  heroScoreLabel: document.getElementById('heroScoreLabel'),
+  heroStatusPill: document.getElementById('heroStatusPill'),
+  btnViewDesktop: document.getElementById('btnViewDesktop'),
+  btnViewMobile: document.getElementById('btnViewMobile'),
+  btnViewCompare: document.getElementById('btnViewCompare'),
+  dashboardViewSwitcher: document.getElementById('dashboardViewSwitcher'),
+  categoryCardsWrap: document.getElementById('categoryCardsWrap'),
+  cwvSummaryCard: document.getElementById('cwvSummaryCard'),
+  cwvDeviceLabel: document.getElementById('cwvDeviceLabel'),
+  cwvPillsGrid: document.getElementById('cwvPillsGrid'),
+  opportunitiesCard: document.getElementById('opportunitiesCard'),
+  opportunitiesList: document.getElementById('opportunitiesList'),
+  heroGaugeContainer: document.getElementById('heroGaugeContainer')
 };
+
+let currentDashboardView = 'desktop'; // 'desktop' | 'mobile' | 'compare'
 
 /* ==========================================================================
    Initialization & Persistence
@@ -336,6 +354,20 @@ function bindEvents() {
     }
   });
 
+  // Dashboard View Switchers
+  els.btnViewDesktop?.addEventListener('click', () => {
+    currentDashboardView = 'desktop';
+    updateDashboardView();
+  });
+  els.btnViewMobile?.addEventListener('click', () => {
+    currentDashboardView = 'mobile';
+    updateDashboardView();
+  });
+  els.btnViewCompare?.addEventListener('click', () => {
+    currentDashboardView = 'compare';
+    updateDashboardView();
+  });
+
   // Clear Audit Results Button
   els.clearResultsBtn.addEventListener('click', async () => {
     lastAuditPayload = null;
@@ -343,6 +375,9 @@ function bindEvents() {
     els.mobileGauges.innerHTML = '';
     els.desktopCwvList.innerHTML = '';
     els.mobileCwvList.innerHTML = '';
+    if (els.categoryCardsWrap) els.categoryCardsWrap.innerHTML = '';
+    if (els.cwvPillsGrid) els.cwvPillsGrid.innerHTML = '';
+    if (els.opportunitiesList) els.opportunitiesList.innerHTML = '';
     els.dashboardMeta.textContent = '';
     els.dashboardSection.classList.add('hidden');
     clearError();
@@ -981,23 +1016,247 @@ function renderDeviceColumn(deviceResult, gaugesContainer, cwvContainer) {
   cwvContainer.innerHTML = cwvRows;
 }
 
+function updateDashboardView() {
+  if (!lastAuditPayload || !lastAuditPayload.results) return;
+
+  const desktopData = lastAuditPayload.results.desktop || null;
+  const mobileData = lastAuditPayload.results.mobile || null;
+
+  // Update segmented buttons
+  if (els.btnViewDesktop) {
+    els.btnViewDesktop.classList.toggle('active', currentDashboardView === 'desktop');
+    els.btnViewDesktop.disabled = !desktopData;
+  }
+  if (els.btnViewMobile) {
+    els.btnViewMobile.classList.toggle('active', currentDashboardView === 'mobile');
+    els.btnViewMobile.disabled = !mobileData;
+  }
+  if (els.btnViewCompare) {
+    els.btnViewCompare.classList.toggle('active', currentDashboardView === 'compare');
+    els.btnViewCompare.disabled = !(desktopData && mobileData);
+  }
+
+  if (currentDashboardView === 'compare') {
+    // Show side-by-side comparison columns
+    if (els.heroGaugeContainer) els.heroGaugeContainer.classList.add('hidden');
+    if (els.categoryCardsWrap) els.categoryCardsWrap.classList.add('hidden');
+    if (els.cwvSummaryCard) els.cwvSummaryCard.classList.add('hidden');
+    if (els.opportunitiesCard) els.opportunitiesCard.classList.add('hidden');
+    if (els.comparisonColumns) els.comparisonColumns.classList.remove('hidden');
+    return;
+  }
+
+  // Single device view (desktop or mobile)
+  if (els.heroGaugeContainer) els.heroGaugeContainer.classList.remove('hidden');
+  if (els.categoryCardsWrap) els.categoryCardsWrap.classList.remove('hidden');
+  if (els.cwvSummaryCard) els.cwvSummaryCard.classList.remove('hidden');
+  if (els.opportunitiesCard) els.opportunitiesCard.classList.remove('hidden');
+  if (els.comparisonColumns) els.comparisonColumns.classList.add('hidden');
+
+  const devResult = currentDashboardView === 'desktop' ? desktopData : mobileData;
+  if (!devResult) return;
+
+  const scores = devResult.scores || {};
+  const perfScore = typeof scores.performance === 'number'
+    ? scores.performance
+    : Math.round(Object.values(scores).reduce((a, b) => a + (b || 0), 0) / (Object.values(scores).length || 1));
+
+  const safeScore = Math.max(0, Math.min(100, Math.round(perfScore)));
+
+  // Update Semicircular Arc Gauge (Image 1 Style)
+  if (els.heroArcProgress) {
+    const arcLen = 235.619;
+    const progressOffset = arcLen * (1 - safeScore / 100);
+    els.heroArcProgress.style.strokeDashoffset = progressOffset.toFixed(1);
+  }
+
+  // Position indicator dot on arc
+  if (els.heroArcDot) {
+    const rad = Math.PI * (1 - safeScore / 100);
+    const cx = 100 - 75 * Math.cos(rad);
+    const cy = 105 - 75 * Math.sin(rad);
+    els.heroArcDot.setAttribute('cx', cx.toFixed(1));
+    els.heroArcDot.setAttribute('cy', cy.toFixed(1));
+    const dotColor = safeScore >= 90 ? '#10b981' : safeScore >= 50 ? '#f59e0b' : '#ef4444';
+    els.heroArcDot.setAttribute('stroke', dotColor);
+  }
+
+  if (els.heroScoreNumber) {
+    els.heroScoreNumber.textContent = safeScore;
+  }
+  if (els.heroScoreLabel) {
+    els.heroScoreLabel.textContent = `${currentDashboardView === 'desktop' ? 'Desktop' : 'Mobile'} Score`;
+  }
+
+  // Status Pill Tag (Image 1 Style: "To improve", "Good", "Needs attention")
+  if (els.heroStatusPill) {
+    if (safeScore >= 90) {
+      els.heroStatusPill.textContent = 'Good';
+      els.heroStatusPill.className = 'hero-status-pill good';
+    } else if (safeScore >= 50) {
+      els.heroStatusPill.textContent = 'To improve';
+      els.heroStatusPill.className = 'hero-status-pill needs-improvement';
+    } else {
+      els.heroStatusPill.textContent = 'Needs attention';
+      els.heroStatusPill.className = 'hero-status-pill poor';
+    }
+  }
+
+  // Render Image 1 Style Category Cards
+  if (els.categoryCardsWrap) {
+    const cwv = devResult.coreWebVitals || {};
+    const catConfig = [
+      {
+        key: 'performance',
+        title: 'Performance',
+        sub: `FCP ${cwv.FCP?.displayValue || '—'} • LCP ${cwv.LCP?.displayValue || '—'} • TBT ${cwv.TBT?.displayValue || '—'}`
+      },
+      {
+        key: 'accessibility',
+        title: 'Accessibility',
+        sub: 'Color contrast, ARIA landmarks, page headings'
+      },
+      {
+        key: 'best-practices',
+        title: 'Best Practices',
+        sub: 'Security protocols, modern web APIs, trust'
+      },
+      {
+        key: 'seo',
+        title: 'SEO',
+        sub: 'Mobile crawlability, descriptive tags, meta'
+      }
+    ];
+
+    let catCardsHtml = '';
+    for (const cat of catConfig) {
+      if (scores[cat.key] === undefined || scores[cat.key] === null) continue;
+      const catScore = Math.max(0, Math.min(100, Math.round(scores[cat.key])));
+      const catColor = getScoreColor(catScore);
+      const dashOffset = (87.96 * (1 - catScore / 100)).toFixed(1);
+
+      let impactClass = 'low-impact';
+      let impactText = 'Low Impact';
+      if (catScore < 50) {
+        impactClass = 'high-impact';
+        impactText = 'High Impact';
+      } else if (catScore < 90) {
+        impactClass = 'moderate-impact';
+        impactText = 'Moderate impact';
+      }
+
+      catCardsHtml += `
+        <div class="cat-score-card">
+          <div class="cat-mini-gauge">
+            <svg class="cat-mini-svg" viewBox="0 0 38 38">
+              <circle class="cat-mini-bg" cx="19" cy="19" r="14" />
+              <circle class="cat-mini-arc" cx="19" cy="19" r="14" stroke="${catColor}" stroke-dasharray="87.96" stroke-dashoffset="${dashOffset}" />
+            </svg>
+            <div class="cat-mini-score" style="color: ${catColor}">${catScore}</div>
+          </div>
+          <div class="cat-info">
+            <div class="cat-title">${cat.title}</div>
+            <div class="cat-sub">${cat.sub}</div>
+          </div>
+          <span class="impact-badge ${impactClass}">${impactText}</span>
+        </div>
+      `;
+    }
+    els.categoryCardsWrap.innerHTML = catCardsHtml;
+  }
+
+  // Render CWV Chips
+  if (els.cwvSummaryCard && els.cwvPillsGrid) {
+    if (els.cwvDeviceLabel) {
+      els.cwvDeviceLabel.textContent = currentDashboardView === 'desktop' ? 'Desktop' : 'Mobile';
+    }
+    const cwv = devResult.coreWebVitals || {};
+    const cwvKeys = ['FCP', 'LCP', 'TBT', 'CLS', 'SI', 'TTI'];
+    let cwvHtml = '';
+    for (const k of cwvKeys) {
+      const item = cwv[k];
+      if (item && item.displayValue) {
+        cwvHtml += `
+          <div class="cwv-chip">
+            <div class="cwv-chip-name">${k}</div>
+            <div class="cwv-chip-val ${item.rating || ''}">${item.displayValue}</div>
+          </div>
+        `;
+      }
+    }
+    els.cwvPillsGrid.innerHTML = cwvHtml || '<p style="color: #64748b; font-size: 11px;">No CWV data</p>';
+  }
+
+  // Render Top Impact Fixes (Opportunities from Image 1 style)
+  if (els.opportunitiesCard && els.opportunitiesList) {
+    const topOpps = devResult.aiSummary?.topOpportunities || [];
+    const failedAudits = devResult.aiSummary?.failedAudits || [];
+    const fixes = [...topOpps, ...failedAudits].slice(0, 4);
+
+    if (fixes.length > 0) {
+      els.opportunitiesCard.classList.remove('hidden');
+      let oppsHtml = '';
+      for (const opp of fixes) {
+        const savingsParts = [];
+        if (opp.wastedMs) savingsParts.push(`~${opp.wastedMs} ms`);
+        if (opp.wastedSize) savingsParts.push(opp.wastedSize);
+        const sub = savingsParts.length > 0
+          ? `Est. Savings: ${savingsParts.join(', ')}`
+          : (opp.displayValue || opp.description || 'Improve performance');
+
+        const isHigh = opp.score < 50 || (opp.wastedMs && opp.wastedMs > 300);
+        const badgeClass = isHigh ? 'high-impact' : 'moderate-impact';
+        const badgeText = isHigh ? 'High Impact' : 'Moderate impact';
+
+        oppsHtml += `
+          <div class="opp-item-card">
+            <div class="opp-info">
+              <div class="opp-title">${opp.title || opp.id}</div>
+              <div class="opp-desc">${sub}</div>
+            </div>
+            <span class="impact-badge ${badgeClass}">${badgeText}</span>
+          </div>
+        `;
+      }
+      els.opportunitiesList.innerHTML = oppsHtml;
+    } else {
+      els.opportunitiesCard.classList.add('hidden');
+    }
+  }
+}
+
 function renderDashboard(payload) {
   if (!payload || !payload.results) return;
 
+  lastAuditPayload = payload;
   els.dashboardSection.classList.remove('hidden');
 
   const desktopData = payload.results.desktop || null;
   const mobileData = payload.results.mobile || null;
 
-  const hasBoth = Boolean(desktopData && mobileData);
-  els.comparisonColumns.classList.toggle('single-col', !hasBoth);
-  els.desktopScoreCol.classList.toggle('hidden', !desktopData);
-  els.mobileScoreCol.classList.toggle('hidden', !mobileData);
-
+  // Set default view to available data
   if (desktopData) {
+    currentDashboardView = 'desktop';
+  } else if (mobileData) {
+    currentDashboardView = 'mobile';
+  }
+
+  // Side-by-side comparison pre-render
+  const hasBoth = Boolean(desktopData && mobileData);
+  if (els.comparisonColumns) {
+    els.comparisonColumns.classList.toggle('single-col', !hasBoth);
+  }
+  if (els.desktopScoreCol) {
+    els.desktopScoreCol.classList.toggle('hidden', !desktopData);
+  }
+  if (els.mobileScoreCol) {
+    els.mobileScoreCol.classList.toggle('hidden', !mobileData);
+  }
+
+  if (desktopData && els.desktopGauges && els.desktopCwvList) {
     renderDeviceColumn(desktopData, els.desktopGauges, els.desktopCwvList);
   }
-  if (mobileData) {
+  if (mobileData && els.mobileGauges && els.mobileCwvList) {
     renderDeviceColumn(mobileData, els.mobileGauges, els.mobileCwvList);
   }
 
@@ -1008,9 +1267,15 @@ function renderDashboard(payload) {
     // keep raw
   }
   const timeStr = new Date(payload.timestamp || Date.now()).toLocaleTimeString();
-  els.dashboardMeta.textContent = `${host} • ${timeStr}`;
-  els.dashboardSourceBadge.textContent =
-    payload.source === 'psi-fallback' ? 'PSI Cloud Fallback' : 'Local Lighthouse';
+  if (els.dashboardMeta) {
+    els.dashboardMeta.textContent = `${host} • ${timeStr}`;
+  }
+  if (els.dashboardSourceBadge) {
+    els.dashboardSourceBadge.textContent =
+      payload.source === 'psi-fallback' ? 'PSI Cloud Fallback' : 'Local Lighthouse';
+  }
+
+  updateDashboardView();
 }
 
 async function saveLightweightAuditCache(payload) {
