@@ -1,0 +1,16 @@
+{
+  "name": "autolighthouse-local-server",
+  "version": "1.0.0",
+  "description": "Local Node.js Lighthouse Runner backend for AutoLighthouse Dual Auditor (Desktop + Mobile)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "chrome-launcher": "^1.1.2",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "lighthouse": "^12.4.0"
+  }
+}

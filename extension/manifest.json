@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "AutoLighthouse Dual Auditor (Desktop + Mobile)",
+  "version": "1.0.0",
+  "description": "One-click Google Lighthouse audits for Desktop & Mobile with live visual score gauges, PageSpeed Insights fallback, and AI-ready report auto-downloads.",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "downloads",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "http://localhost:9876/*",
+    "http://127.0.0.1:9876/*",
+    "https://www.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AutoLighthouse Dual Auditor (Desktop + Mobile)",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
