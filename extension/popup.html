@@ -11,10 +11,12 @@
     <!-- Top Header -->
     <header class="app-header">
       <div class="brand">
-        <img src="icon48.png" alt="AutoLighthouse" class="brand-icon" />
+        <div class="brand-icon-wrap">
+          <img src="icon48.png" alt="AutoLighthouse" class="brand-icon" />
+        </div>
         <div>
           <h1 class="brand-title">AutoLighthouse</h1>
-          <p class="brand-subtitle">Dual Auditor (Desktop + Mobile)</p>
+          <p class="brand-subtitle">Dual Auditor • Desktop &amp; Mobile</p>
         </div>
       </div>
       <div class="server-pill" id="serverStatusPill" title="Click to re-check localhost:9876 connection">
@@ -25,20 +27,35 @@
 
     <!-- Offline / PSI Fallback Banner -->
     <div class="fallback-banner hidden" id="fallbackBanner">
-      <div class="fallback-info">
-        <span class="fallback-badge">Cloud Fallback Ready</span>
-        <p id="fallbackMessage">
-          Local server (<code>localhost:9876</code>) is offline. Public <code>https://</code> sites can still be audited via <strong>Google PageSpeed Insights API</strong>, or run <code>start-server.bat</code> for local sites.
-        </p>
-      </div>
+      <div class="fallback-badge">Cloud Fallback Ready</div>
+      <p id="fallbackMessage">
+        Local server (<code>localhost:9876</code>) offline. Public sites will audit via <strong>PageSpeed Insights API</strong>. Run <code>start-server.bat</code> for localhost.
+      </p>
     </div>
 
-    <!-- Target URL Section -->
+    <!-- Segmented Device Tab Control (Inspired by Image 2) -->
+    <div class="segmented-control" role="group" aria-label="Device Selection">
+      <label class="seg-item active" id="deviceLabelBoth">
+        <input type="checkbox" name="deviceMode" value="both" id="deviceBoth" checked />
+        <span class="seg-text">🖥️+📱 Dual Run</span>
+      </label>
+      <label class="seg-item" id="deviceLabelDesktop">
+        <input type="checkbox" name="deviceMode" value="desktop" id="deviceDesktop" />
+        <span class="seg-text">🖥️ Desktop</span>
+      </label>
+      <label class="seg-item" id="deviceLabelMobile">
+        <input type="checkbox" name="deviceMode" value="mobile" id="deviceMobile" />
+        <span class="seg-text">📱 Mobile</span>
+      </label>
+    </div>
+
+    <!-- Target URL Card (Inspired by Image 2 Clean Inputs) -->
     <section class="card url-card">
       <div class="section-header">
         <label for="urlInput" class="section-label">Target URL</label>
         <button type="button" class="link-btn" id="useActiveTabBtn" title="Use active browser tab URL">
-          Use Active Tab
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+          Active Tab
         </button>
       </div>
       <div class="url-input-wrap">
@@ -49,106 +66,66 @@
           placeholder="https://example.com or http://localhost:3000"
           spellcheck="false"
         />
+        <div class="url-badge-indicator" id="urlProtocolBadge">HTTP/S</div>
       </div>
     </section>
 
-    <!-- Device Mode Selection -->
-    <section class="card">
-      <div class="section-header">
-        <span class="section-label">Device Selection</span>
-        <span class="section-hint">Sequential clean runs</span>
-      </div>
-      <div class="device-grid" role="group" aria-label="Device Selection">
-        <label class="device-option active" id="deviceLabelBoth">
-          <input type="checkbox" name="deviceMode" value="both" id="deviceBoth" checked />
-          <span class="device-icon">🖥️+📱</span>
-          <span class="device-name">Both</span>
-          <span class="device-sub">Auto-Sequence</span>
-        </label>
-        <label class="device-option" id="deviceLabelDesktop">
-          <input type="checkbox" name="deviceMode" value="desktop" id="deviceDesktop" />
-          <span class="device-icon">🖥️</span>
-          <span class="device-name">Desktop Only</span>
-          <span class="device-sub">1350×940</span>
-        </label>
-        <label class="device-option" id="deviceLabelMobile">
-          <input type="checkbox" name="deviceMode" value="mobile" id="deviceMobile" />
-          <span class="device-icon">📱</span>
-          <span class="device-name">Mobile Only</span>
-          <span class="device-sub">Moto G4 4G</span>
-        </label>
-      </div>
-    </section>
-
-    <!-- Category Selection -->
-    <section class="card">
+    <!-- Audit Config Accordion / Cards -->
+    <section class="card config-card">
       <div class="section-header">
         <span class="section-label">Audit Categories</span>
-      </div>
-      <div class="checkbox-grid">
-        <label class="check-pill">
-          <input type="checkbox" id="catPerformance" value="performance" checked />
-          <span>⚡ Performance</span>
-        </label>
-        <label class="check-pill">
-          <input type="checkbox" id="catAccessibility" value="accessibility" checked />
-          <span>♿ Accessibility</span>
-        </label>
-        <label class="check-pill">
-          <input type="checkbox" id="catBestPractices" value="best-practices" checked />
-          <span>🛡️ Best Practices</span>
-        </label>
-        <label class="check-pill">
-          <input type="checkbox" id="catSeo" value="seo" checked />
-          <span>🔍 SEO</span>
-        </label>
-      </div>
-    </section>
-
-    <!-- Output Formats & Auto-Download Settings -->
-    <section class="card">
-      <div class="section-header">
-        <span class="section-label">Output Formats &amp; Auto-Download</span>
-        <label class="switch-wrap" title="Automatically download selected report formats when audit finishes">
+        <label class="switch-wrap" title="Auto-download report files when complete">
           <span class="switch-label">Auto-Download</span>
           <input type="checkbox" id="autoDownloadToggle" checked />
           <span class="switch-slider"></span>
         </label>
       </div>
-      <div class="format-list">
-        <label class="format-row">
+
+      <!-- Categories Pills -->
+      <div class="checkbox-grid">
+        <label class="check-pill">
+          <input type="checkbox" id="catPerformance" value="performance" checked />
+          <span class="pill-dot perf"></span>
+          <span>Performance</span>
+        </label>
+        <label class="check-pill">
+          <input type="checkbox" id="catAccessibility" value="accessibility" checked />
+          <span class="pill-dot a11y"></span>
+          <span>Accessibility</span>
+        </label>
+        <label class="check-pill">
+          <input type="checkbox" id="catBestPractices" value="best-practices" checked />
+          <span class="pill-dot bp"></span>
+          <span>Best Practices</span>
+        </label>
+        <label class="check-pill">
+          <input type="checkbox" id="catSeo" value="seo" checked />
+          <span class="pill-dot seo"></span>
+          <span>SEO</span>
+        </label>
+      </div>
+
+      <!-- Download Formats (Compact) -->
+      <div class="format-chips">
+        <label class="format-chip">
           <input type="checkbox" id="fmtAiSummary" checked />
-          <div class="format-text">
-            <span class="format-title">
-              AI-Optimized Compact Report
-              <span class="tag-badge">Recommended</span>
-            </span>
-            <span class="format-desc">
-              <code>&lt;domain&gt;-&lt;ts&gt;-combined-ai-report.json</code> &amp; <code>.md</code> (Merged Desktop + Mobile diagnostics)
-            </span>
-          </div>
+          <span>✨ AI Report (.md/.json)</span>
         </label>
-        <label class="format-row">
+        <label class="format-chip">
           <input type="checkbox" id="fmtJson" checked />
-          <div class="format-text">
-            <span class="format-title">Full Lighthouse JSON</span>
-            <span class="format-desc"><code>&lt;domain&gt;-&lt;ts&gt;-desktop.json</code> &amp; <code>mobile.json</code></span>
-          </div>
+          <span>JSON</span>
         </label>
-        <label class="format-row">
+        <label class="format-chip">
           <input type="checkbox" id="fmtHtml" />
-          <div class="format-text">
-            <span class="format-title">Full Lighthouse HTML Report</span>
-            <span class="format-desc"><code>&lt;domain&gt;-&lt;ts&gt;-desktop.html</code> &amp; <code>mobile.html</code></span>
-          </div>
+          <span>HTML</span>
         </label>
       </div>
     </section>
 
-    <!-- Primary Run Audit Action Button -->
+    <!-- Primary Action Button (Inspired by Image 2 Dark Pill Button) -->
     <div class="action-bar">
       <button type="button" id="runAuditBtn" class="primary-btn">
-        <span class="btn-icon">🚀</span>
+        <span class="btn-icon">⚡</span>
         <span id="runAuditBtnText">Run Dual Lighthouse Audit</span>
       </button>
     </div>
@@ -156,66 +133,157 @@
     <!-- Live Progress Section -->
     <section class="card progress-card hidden" id="progressSection">
       <div class="progress-header">
-        <span class="spinner" id="progressSpinner"></span>
-        <span class="progress-status" id="progressStatusText">Step 1/2: Auditing Desktop...</span>
+        <div class="spinner-wrap">
+          <span class="spinner" id="progressSpinner"></span>
+        </div>
+        <div class="progress-info">
+          <span class="progress-status" id="progressStatusText">Auditing...</span>
+          <p class="progress-sub" id="progressSubText">Preparing isolated headless Chrome instance...</p>
+        </div>
         <span class="progress-timer" id="progressTimer">0s</span>
       </div>
       <div class="progress-track">
         <div class="progress-fill" id="progressBarFill" style="width: 15%"></div>
       </div>
-      <p class="progress-sub" id="progressSubText">
-        Launching clean headless Chrome with isolated profile...
-      </p>
     </section>
 
-    <!-- Error Alert -->
+    <!-- Error Card -->
     <section class="card error-card hidden" id="errorSection">
       <div class="error-title">⚠️ Audit Error</div>
       <p class="error-msg" id="errorMessage"></p>
     </section>
 
-    <!-- Visual Score Dashboard (Shown when completed) -->
-    <section class="card dashboard-card hidden" id="dashboardSection">
-      <div class="dashboard-header">
-        <div>
-          <h2 class="dashboard-title">Audit Results</h2>
-          <p class="dashboard-meta" id="dashboardMeta"></p>
+    <!-- Visual Score Dashboard (Inspired by Image 1 & 2) -->
+    <section class="dashboard-wrap hidden" id="dashboardSection">
+      <!-- Dashboard Top Header -->
+      <div class="card dashboard-hero-card">
+        <div class="dashboard-hero-header">
+          <div class="dashboard-meta-wrap">
+            <span class="source-badge" id="dashboardSourceBadge">Local Engine</span>
+            <p class="dashboard-meta" id="dashboardMeta"></p>
+          </div>
+          <button type="button" id="clearResultsBtn" class="clear-results-btn" title="Clear Audit Results">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            Clear
+          </button>
         </div>
-        <span class="source-badge" id="dashboardSourceBadge">Local Engine</span>
+
+        <!-- Dashboard View Switcher: Desktop vs Mobile -->
+        <div class="dashboard-view-segmented" id="dashboardViewSwitcher">
+          <button type="button" class="dash-seg-btn active" id="btnViewDesktop">🖥️ Desktop</button>
+          <button type="button" class="dash-seg-btn" id="btnViewMobile">📱 Mobile</button>
+          <button type="button" class="dash-seg-btn" id="btnViewCompare">📊 Compare</button>
+        </div>
+
+        <!-- Hero Speedometer Arc Gauge (Inspired by Image 1) -->
+        <div class="hero-gauge-container" id="heroGaugeContainer">
+          <div class="hero-gauge-svg-wrap">
+            <svg class="hero-arc-svg" viewBox="0 0 200 120">
+              <defs>
+                <linearGradient id="scoreArcGradient" x1="0%" y1="100%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ef4444" />
+                  <stop offset="30%" stop-color="#f97316" />
+                  <stop offset="65%" stop-color="#eab308" />
+                  <stop offset="100%" stop-color="#10b981" />
+                </linearGradient>
+              </defs>
+              <!-- Background Arc -->
+              <path
+                class="hero-arc-bg"
+                d="M 25 105 A 75 75 0 0 1 175 105"
+                fill="none"
+                stroke="#e2e8f0"
+                stroke-width="13"
+                stroke-linecap="round"
+              />
+              <!-- Progress Arc -->
+              <path
+                id="heroArcProgress"
+                class="hero-arc-progress"
+                d="M 25 105 A 75 75 0 0 1 175 105"
+                fill="none"
+                stroke="url(#scoreArcGradient)"
+                stroke-width="13"
+                stroke-linecap="round"
+                stroke-dasharray="235.6"
+                stroke-dashoffset="40"
+              />
+              <!-- Interactive Score Indicator Dot on the Arc -->
+              <circle
+                id="heroArcDot"
+                cx="160"
+                cy="52"
+                r="6"
+                fill="#ffffff"
+                stroke="#ef4444"
+                stroke-width="3.5"
+              />
+            </svg>
+            <div class="hero-score-center">
+              <div class="hero-score-number" id="heroScoreNumber">--</div>
+              <div class="hero-score-label" id="heroScoreLabel">Overall Score</div>
+            </div>
+          </div>
+          <!-- Status Tag / Pill (e.g. "To improve", "Good", etc. - Exactly like Image 1) -->
+          <div class="hero-status-pill" id="heroStatusPill">Evaluating...</div>
+        </div>
       </div>
 
-      <!-- Side-by-Side Comparison Grid -->
-      <div class="comparison-columns" id="comparisonColumns">
-        <!-- Desktop Column -->
+      <!-- Category Score Cards List (Image 1 Style Stacked Cards) -->
+      <div class="category-cards-wrap" id="categoryCardsWrap">
+        <!-- Rendered dynamically by popup.js -->
+      </div>
+
+      <!-- Core Web Vitals Summary Card -->
+      <div class="card cwv-card" id="cwvSummaryCard">
+        <div class="section-header">
+          <span class="section-label">Core Web Vitals</span>
+          <span class="section-hint" id="cwvDeviceLabel">Desktop</span>
+        </div>
+        <div class="cwv-pill-grid" id="cwvPillsGrid">
+          <!-- Rendered dynamically by popup.js -->
+        </div>
+      </div>
+
+      <!-- Side-by-Side Dual Comparison Grid (Shown when Compare tab selected) -->
+      <div class="comparison-columns hidden" id="comparisonColumns">
         <div class="device-score-col" id="desktopScoreCol">
-          <div class="col-header">
-            <span>🖥️ Desktop</span>
-          </div>
+          <div class="col-header"><span>🖥️ Desktop</span></div>
           <div class="gauges-grid" id="desktopGauges"></div>
           <div class="cwv-mini-list" id="desktopCwvList"></div>
         </div>
-
-        <!-- Mobile Column -->
         <div class="device-score-col" id="mobileScoreCol">
-          <div class="col-header">
-            <span>📱 Mobile</span>
-          </div>
+          <div class="col-header"><span>📱 Mobile</span></div>
           <div class="gauges-grid" id="mobileGauges"></div>
           <div class="cwv-mini-list" id="mobileCwvList"></div>
         </div>
       </div>
 
-      <!-- AI Prompt Copy & On-Demand Download Buttons -->
+      <!-- Top Optimization Opportunities (Image 1 Style Impact Cards) -->
+      <div class="card opportunities-card" id="opportunitiesCard">
+        <div class="section-header">
+          <span class="section-label">Top Impact Fixes</span>
+          <span class="section-hint">High priority</span>
+        </div>
+        <div class="opportunities-list" id="opportunitiesList">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
       <div class="dashboard-actions">
         <button type="button" id="copyAiPromptBtn" class="copy-ai-btn">
-          <span>📋 Copy AI Prompt + Report to Clipboard</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy AI Prompt + Report to Clipboard</span>
         </button>
         <div class="secondary-actions">
-          <button type="button" id="downloadSelectedBtn" class="secondary-btn" title="Download selected report files now">
-            ⬇️ Download Selected Files
+          <button type="button" id="downloadSelectedBtn" class="secondary-btn" title="Download selected reports">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Files
           </button>
-          <button type="button" id="downloadAiMdBtn" class="secondary-btn" title="Download .ai.md report">
-            📄 Save .ai.md
+          <button type="button" id="downloadAiMdBtn" class="secondary-btn" title="Save .ai.md report">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Save .ai.md
           </button>
         </div>
       </div>
