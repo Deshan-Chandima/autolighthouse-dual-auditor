@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AutoLighthouse Dual Auditor</title>
+  <title>AutoLighthouse Dual Auditor &amp; Security Scanner</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
@@ -16,7 +16,7 @@
         </div>
         <div>
           <h1 class="brand-title">AutoLighthouse</h1>
-          <p class="brand-subtitle">Dual Auditor • Desktop &amp; Mobile</p>
+          <p class="brand-subtitle">Dual Auditor &amp; Security Suite</p>
         </div>
       </div>
       <div class="server-pill" id="serverStatusPill" title="Click to re-check localhost:9876 connection">
@@ -25,31 +25,26 @@
       </div>
     </header>
 
+    <!-- Primary Mode Switcher: Lighthouse vs Security Scanner -->
+    <nav class="mode-tab-bar" role="tablist" aria-label="Audit Mode">
+      <button type="button" class="mode-tab-btn active" id="tabBtnLighthouse" role="tab" aria-selected="true">
+        <span>⚡ Lighthouse Audit</span>
+      </button>
+      <button type="button" class="mode-tab-btn" id="tabBtnSecurity" role="tab" aria-selected="false">
+        <span>🛡️ Security Scanner</span>
+        <span class="mode-new-badge">NEW</span>
+      </button>
+    </nav>
+
     <!-- Offline / PSI Fallback Banner -->
     <div class="fallback-banner hidden" id="fallbackBanner">
-      <div class="fallback-badge">Cloud Fallback Ready</div>
+      <div class="fallback-badge">Cloud / Browser Fallback Ready</div>
       <p id="fallbackMessage">
-        Local server (<code>localhost:9876</code>) offline. Public sites will audit via <strong>PageSpeed Insights API</strong>. Run <code>start-server.bat</code> for localhost.
+        Local server (<code>localhost:9876</code>) offline. Public sites can still be audited, or run <code>start-server.bat</code> for full deep local scans.
       </p>
     </div>
 
-    <!-- Segmented Device Tab Control (Inspired by Image 2) -->
-    <div class="segmented-control" role="group" aria-label="Device Selection">
-      <label class="seg-item active" id="deviceLabelBoth">
-        <input type="checkbox" name="deviceMode" value="both" id="deviceBoth" checked />
-        <span class="seg-text">🖥️+📱 Dual Run</span>
-      </label>
-      <label class="seg-item" id="deviceLabelDesktop">
-        <input type="checkbox" name="deviceMode" value="desktop" id="deviceDesktop" />
-        <span class="seg-text">🖥️ Desktop</span>
-      </label>
-      <label class="seg-item" id="deviceLabelMobile">
-        <input type="checkbox" name="deviceMode" value="mobile" id="deviceMobile" />
-        <span class="seg-text">📱 Mobile</span>
-      </label>
-    </div>
-
-    <!-- Target URL Card (Inspired by Image 2 Clean Inputs) -->
+    <!-- Shared Target URL Card -->
     <section class="card url-card">
       <div class="section-header">
         <label for="urlInput" class="section-label">Target URL</label>
@@ -70,67 +65,7 @@
       </div>
     </section>
 
-    <!-- Audit Config Accordion / Cards -->
-    <section class="card config-card">
-      <div class="section-header">
-        <span class="section-label">Audit Categories</span>
-        <label class="switch-wrap" title="Auto-download report files when complete">
-          <span class="switch-label">Auto-Download</span>
-          <input type="checkbox" id="autoDownloadToggle" checked />
-          <span class="switch-slider"></span>
-        </label>
-      </div>
-
-      <!-- Categories Pills -->
-      <div class="checkbox-grid">
-        <label class="check-pill">
-          <input type="checkbox" id="catPerformance" value="performance" checked />
-          <span class="pill-dot perf"></span>
-          <span>Performance</span>
-        </label>
-        <label class="check-pill">
-          <input type="checkbox" id="catAccessibility" value="accessibility" checked />
-          <span class="pill-dot a11y"></span>
-          <span>Accessibility</span>
-        </label>
-        <label class="check-pill">
-          <input type="checkbox" id="catBestPractices" value="best-practices" checked />
-          <span class="pill-dot bp"></span>
-          <span>Best Practices</span>
-        </label>
-        <label class="check-pill">
-          <input type="checkbox" id="catSeo" value="seo" checked />
-          <span class="pill-dot seo"></span>
-          <span>SEO</span>
-        </label>
-      </div>
-
-      <!-- Download Formats (Compact) -->
-      <div class="format-chips">
-        <label class="format-chip">
-          <input type="checkbox" id="fmtAiSummary" checked />
-          <span>✨ AI Report (.md/.json)</span>
-        </label>
-        <label class="format-chip">
-          <input type="checkbox" id="fmtJson" checked />
-          <span>JSON</span>
-        </label>
-        <label class="format-chip">
-          <input type="checkbox" id="fmtHtml" />
-          <span>HTML</span>
-        </label>
-      </div>
-    </section>
-
-    <!-- Primary Action Button (Inspired by Image 2 Dark Pill Button) -->
-    <div class="action-bar">
-      <button type="button" id="runAuditBtn" class="primary-btn">
-        <span class="btn-icon">⚡</span>
-        <span id="runAuditBtnText">Run Dual Lighthouse Audit</span>
-      </button>
-    </div>
-
-    <!-- Live Progress Section -->
+    <!-- Shared Live Progress Section -->
     <section class="card progress-card hidden" id="progressSection">
       <div class="progress-header">
         <div class="spinner-wrap">
@@ -138,7 +73,7 @@
         </div>
         <div class="progress-info">
           <span class="progress-status" id="progressStatusText">Auditing...</span>
-          <p class="progress-sub" id="progressSubText">Preparing isolated headless Chrome instance...</p>
+          <p class="progress-sub" id="progressSubText">Preparing audit engine...</p>
         </div>
         <span class="progress-timer" id="progressTimer">0s</span>
       </div>
@@ -147,147 +82,381 @@
       </div>
     </section>
 
-    <!-- Error Card -->
+    <!-- Shared Error Card -->
     <section class="card error-card hidden" id="errorSection">
       <div class="error-title">⚠️ Audit Error</div>
       <p class="error-msg" id="errorMessage"></p>
     </section>
 
-    <!-- Visual Score Dashboard (Inspired by Image 1 & 2) -->
-    <section class="dashboard-wrap hidden" id="dashboardSection">
-      <!-- Dashboard Top Header -->
-      <div class="card dashboard-hero-card">
-        <div class="dashboard-hero-header">
-          <div class="dashboard-meta-wrap">
-            <span class="source-badge" id="dashboardSourceBadge">Local Engine</span>
-            <p class="dashboard-meta" id="dashboardMeta"></p>
+    <!-- ======================================================================
+         TAB 1: LIGHTHOUSE AUDIT PANEL (Desktop + Mobile)
+         ====================================================================== -->
+    <div id="lighthouseTabPanel" class="tab-panel">
+      <!-- Segmented Device Tab Control (Inspired by Image 2) -->
+      <div class="segmented-control" role="group" aria-label="Device Selection">
+        <label class="seg-item active" id="deviceLabelBoth">
+          <input type="checkbox" name="deviceMode" value="both" id="deviceBoth" checked />
+          <span class="seg-text">🖥️+📱 Dual Run</span>
+        </label>
+        <label class="seg-item" id="deviceLabelDesktop">
+          <input type="checkbox" name="deviceMode" value="desktop" id="deviceDesktop" />
+          <span class="seg-text">🖥️ Desktop</span>
+        </label>
+        <label class="seg-item" id="deviceLabelMobile">
+          <input type="checkbox" name="deviceMode" value="mobile" id="deviceMobile" />
+          <span class="seg-text">📱 Mobile</span>
+        </label>
+      </div>
+
+      <!-- Audit Config Card -->
+      <section class="card config-card">
+        <div class="section-header">
+          <span class="section-label">Audit Categories</span>
+          <label class="switch-wrap" title="Auto-download report files when complete">
+            <span class="switch-label">Auto-Download</span>
+            <input type="checkbox" id="autoDownloadToggle" checked />
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <!-- Categories Pills -->
+        <div class="checkbox-grid">
+          <label class="check-pill">
+            <input type="checkbox" id="catPerformance" value="performance" checked />
+            <span class="pill-dot perf"></span>
+            <span>Performance</span>
+          </label>
+          <label class="check-pill">
+            <input type="checkbox" id="catAccessibility" value="accessibility" checked />
+            <span class="pill-dot a11y"></span>
+            <span>Accessibility</span>
+          </label>
+          <label class="check-pill">
+            <input type="checkbox" id="catBestPractices" value="best-practices" checked />
+            <span class="pill-dot bp"></span>
+            <span>Best Practices</span>
+          </label>
+          <label class="check-pill">
+            <input type="checkbox" id="catSeo" value="seo" checked />
+            <span class="pill-dot seo"></span>
+            <span>SEO</span>
+          </label>
+        </div>
+
+        <!-- Download Formats (Compact) -->
+        <div class="format-chips">
+          <label class="format-chip">
+            <input type="checkbox" id="fmtAiSummary" checked />
+            <span>✨ AI Report (.md/.json)</span>
+          </label>
+          <label class="format-chip">
+            <input type="checkbox" id="fmtJson" checked />
+            <span>JSON</span>
+          </label>
+          <label class="format-chip">
+            <input type="checkbox" id="fmtHtml" />
+            <span>HTML</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Primary Action Button -->
+      <div class="action-bar">
+        <button type="button" id="runAuditBtn" class="primary-btn">
+          <span class="btn-icon">⚡</span>
+          <span id="runAuditBtnText">Run Dual Lighthouse Audit</span>
+        </button>
+      </div>
+
+      <!-- Visual Score Dashboard -->
+      <section class="dashboard-wrap hidden" id="dashboardSection">
+        <div class="card dashboard-hero-card">
+          <div class="dashboard-hero-header">
+            <div class="dashboard-meta-wrap">
+              <span class="source-badge" id="dashboardSourceBadge">Local Engine</span>
+              <p class="dashboard-meta" id="dashboardMeta"></p>
+            </div>
+            <button type="button" id="clearResultsBtn" class="clear-results-btn" title="Clear Audit Results">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              Clear
+            </button>
           </div>
-          <button type="button" id="clearResultsBtn" class="clear-results-btn" title="Clear Audit Results">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-            Clear
+
+          <div class="dashboard-view-segmented" id="dashboardViewSwitcher">
+            <button type="button" class="dash-seg-btn active" id="btnViewDesktop">🖥️ Desktop</button>
+            <button type="button" class="dash-seg-btn" id="btnViewMobile">📱 Mobile</button>
+            <button type="button" class="dash-seg-btn" id="btnViewCompare">📊 Compare</button>
+          </div>
+
+          <div class="hero-gauge-container" id="heroGaugeContainer">
+            <div class="hero-gauge-svg-wrap">
+              <svg class="hero-arc-svg" viewBox="0 0 200 120">
+                <defs>
+                  <linearGradient id="scoreArcGradient" x1="0%" y1="100%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ef4444" />
+                    <stop offset="30%" stop-color="#f97316" />
+                    <stop offset="65%" stop-color="#eab308" />
+                    <stop offset="100%" stop-color="#10b981" />
+                  </linearGradient>
+                </defs>
+                <path
+                  class="hero-arc-bg"
+                  d="M 25 105 A 75 75 0 0 1 175 105"
+                  fill="none"
+                  stroke="#e2e8f0"
+                  stroke-width="13"
+                  stroke-linecap="round"
+                />
+                <path
+                  id="heroArcProgress"
+                  class="hero-arc-progress"
+                  d="M 25 105 A 75 75 0 0 1 175 105"
+                  fill="none"
+                  stroke="url(#scoreArcGradient)"
+                  stroke-width="13"
+                  stroke-linecap="round"
+                  stroke-dasharray="235.6"
+                  stroke-dashoffset="40"
+                />
+                <circle
+                  id="heroArcDot"
+                  cx="160"
+                  cy="52"
+                  r="6"
+                  fill="#ffffff"
+                  stroke="#ef4444"
+                  stroke-width="3.5"
+                />
+              </svg>
+              <div class="hero-score-center">
+                <div class="hero-score-number" id="heroScoreNumber">--</div>
+                <div class="hero-score-label" id="heroScoreLabel">Overall Score</div>
+              </div>
+            </div>
+            <div class="hero-status-pill" id="heroStatusPill">Evaluating...</div>
+          </div>
+        </div>
+
+        <div class="category-cards-wrap" id="categoryCardsWrap"></div>
+
+        <div class="card cwv-card" id="cwvSummaryCard">
+          <div class="section-header">
+            <span class="section-label">Core Web Vitals</span>
+            <span class="section-hint" id="cwvDeviceLabel">Desktop</span>
+          </div>
+          <div class="cwv-pill-grid" id="cwvPillsGrid"></div>
+        </div>
+
+        <div class="comparison-columns hidden" id="comparisonColumns">
+          <div class="device-score-col" id="desktopScoreCol">
+            <div class="col-header"><span>🖥️ Desktop</span></div>
+            <div class="gauges-grid" id="desktopGauges"></div>
+            <div class="cwv-mini-list" id="desktopCwvList"></div>
+          </div>
+          <div class="device-score-col" id="mobileScoreCol">
+            <div class="col-header"><span>📱 Mobile</span></div>
+            <div class="gauges-grid" id="mobileGauges"></div>
+            <div class="cwv-mini-list" id="mobileCwvList"></div>
+          </div>
+        </div>
+
+        <div class="card opportunities-card" id="opportunitiesCard">
+          <div class="section-header">
+            <span class="section-label">Top Impact Fixes</span>
+            <span class="section-hint">High priority</span>
+          </div>
+          <div class="opportunities-list" id="opportunitiesList"></div>
+        </div>
+
+        <div class="dashboard-actions">
+          <button type="button" id="copyAiPromptBtn" class="copy-ai-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span>Copy AI Prompt + Report to Clipboard</span>
           </button>
+          <div class="secondary-actions">
+            <button type="button" id="downloadSelectedBtn" class="secondary-btn" title="Download selected reports">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Files
+            </button>
+            <button type="button" id="downloadAiMdBtn" class="secondary-btn" title="Save .ai.md report">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Save .ai.md
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ======================================================================
+         TAB 2: SECURITY SCANNER PANEL (6-Layer Defensive Posture & Site Crawl)
+         ====================================================================== -->
+    <div id="securityTabPanel" class="tab-panel hidden">
+      <!-- Scan Scope Segmented Control -->
+      <div class="segmented-control" role="group" aria-label="Security Scan Scope">
+        <label class="seg-item active" id="secScopeLabelFull">
+          <input type="checkbox" name="secScanScope" value="full" id="secScopeFull" checked />
+          <span class="seg-text">🌐 Full Site Crawl</span>
+        </label>
+        <label class="seg-item" id="secScopeLabelQuick">
+          <input type="checkbox" name="secScanScope" value="quick" id="secScopeQuick" />
+          <span class="seg-text">🎯 Quick Page Scan</span>
+        </label>
+      </div>
+
+      <!-- Security Config Card -->
+      <section class="card config-card">
+        <!-- Crawl Depth Selector (Shown when Full Site Crawl is selected) -->
+        <div class="crawl-limit-row" id="secCrawlLimitRow">
+          <span class="crawl-limit-label">Site Crawl Depth:</span>
+          <div class="crawl-limit-pills">
+            <button type="button" class="crawl-pill" data-pages="5">5 Pages</button>
+            <button type="button" class="crawl-pill active" data-pages="10">10 Pages ★</button>
+            <button type="button" class="crawl-pill" data-pages="25">25 Pages</button>
+          </div>
         </div>
 
-        <!-- Dashboard View Switcher: Desktop vs Mobile -->
-        <div class="dashboard-view-segmented" id="dashboardViewSwitcher">
-          <button type="button" class="dash-seg-btn active" id="btnViewDesktop">🖥️ Desktop</button>
-          <button type="button" class="dash-seg-btn" id="btnViewMobile">📱 Mobile</button>
-          <button type="button" class="dash-seg-btn" id="btnViewCompare">📊 Compare</button>
+        <div class="section-header">
+          <span class="section-label">6-Layer Security Checks</span>
+          <label class="switch-wrap" title="Auto-download .security.md & .security.json reports">
+            <span class="switch-label">Auto-Save</span>
+            <input type="checkbox" id="secAutoDownloadToggle" checked />
+            <span class="switch-slider"></span>
+          </label>
         </div>
 
-        <!-- Hero Speedometer Arc Gauge (Inspired by Image 1) -->
-        <div class="hero-gauge-container" id="heroGaugeContainer">
-          <div class="hero-gauge-svg-wrap">
-            <svg class="hero-arc-svg" viewBox="0 0 200 120">
-              <defs>
-                <linearGradient id="scoreArcGradient" x1="0%" y1="100%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#ef4444" />
-                  <stop offset="30%" stop-color="#f97316" />
-                  <stop offset="65%" stop-color="#eab308" />
-                  <stop offset="100%" stop-color="#10b981" />
-                </linearGradient>
-              </defs>
-              <!-- Background Arc -->
-              <path
-                class="hero-arc-bg"
-                d="M 25 105 A 75 75 0 0 1 175 105"
-                fill="none"
-                stroke="#e2e8f0"
-                stroke-width="13"
-                stroke-linecap="round"
-              />
-              <!-- Progress Arc -->
-              <path
-                id="heroArcProgress"
-                class="hero-arc-progress"
-                d="M 25 105 A 75 75 0 0 1 175 105"
-                fill="none"
-                stroke="url(#scoreArcGradient)"
-                stroke-width="13"
-                stroke-linecap="round"
-                stroke-dasharray="235.6"
-                stroke-dashoffset="40"
-              />
-              <!-- Interactive Score Indicator Dot on the Arc -->
-              <circle
-                id="heroArcDot"
-                cx="160"
-                cy="52"
-                r="6"
-                fill="#ffffff"
-                stroke="#ef4444"
-                stroke-width="3.5"
-              />
-            </svg>
-            <div class="hero-score-center">
-              <div class="hero-score-number" id="heroScoreNumber">--</div>
-              <div class="hero-score-label" id="heroScoreLabel">Overall Score</div>
+        <div class="checkbox-grid">
+          <label class="check-pill">
+            <input type="checkbox" id="secModHeaders" value="headers" checked />
+            <span class="pill-dot perf"></span>
+            <span>🔒 HTTP Headers</span>
+          </label>
+          <label class="check-pill">
+            <input type="checkbox" id="secModCookies" value="cookies" checked />
+            <span class="pill-dot a11y"></span>
+            <span>🍪 Cookies &amp; Auth</span>
+          </label>
+          <label class="check-pill">
+            <input type="checkbox" id="secModTls" value="tls" checked />
+            <span class="pill-dot bp"></span>
+            <span>🔐 SSL/TLS &amp; HTTPS</span>
+          </label>
+          <label class="check-pill">
+            <input type="checkbox" id="secModExposure" value="exposure" checked />
+            <span class="pill-dot seo"></span>
+            <span>🕵️ .env / .git Leaks</span>
+          </label>
+          <label class="check-pill">
+            <input type="checkbox" id="secModDom" value="dom" checked />
+            <span class="pill-dot perf"></span>
+            <span>📦 JS Libs &amp; DOM</span>
+          </label>
+          <label class="check-pill">
+            <input type="checkbox" id="secModCors" value="cors" checked />
+            <span class="pill-dot a11y"></span>
+            <span>🌐 CORS &amp; Server</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Primary Security Action Button -->
+      <div class="action-bar">
+        <button type="button" id="runSecurityBtn" class="primary-btn security-run-btn">
+          <span class="btn-icon">🛡️</span>
+          <span id="runSecurityBtnText">Run Full Site Security Audit</span>
+        </button>
+      </div>
+
+      <!-- Security Dashboard Results -->
+      <section class="dashboard-wrap hidden" id="securityDashboardSection">
+        <div class="card dashboard-hero-card">
+          <div class="dashboard-hero-header">
+            <div class="dashboard-meta-wrap">
+              <span class="source-badge" id="secStackBadge">Web Server</span>
+              <p class="dashboard-meta" id="secMeta"></p>
+            </div>
+            <button type="button" id="clearSecurityResultsBtn" class="clear-results-btn" title="Clear Security Results">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              Clear
+            </button>
+          </div>
+
+          <!-- Security Hero Speedometer Arc + Grade Badge -->
+          <div class="hero-gauge-container">
+            <div class="hero-gauge-svg-wrap">
+              <svg class="hero-arc-svg" viewBox="0 0 200 120">
+                <path
+                  class="hero-arc-bg"
+                  d="M 25 105 A 75 75 0 0 1 175 105"
+                  fill="none"
+                  stroke="#e2e8f0"
+                  stroke-width="13"
+                  stroke-linecap="round"
+                />
+                <path
+                  id="secArcProgress"
+                  class="hero-arc-progress"
+                  d="M 25 105 A 75 75 0 0 1 175 105"
+                  fill="none"
+                  stroke="url(#scoreArcGradient)"
+                  stroke-width="13"
+                  stroke-linecap="round"
+                  stroke-dasharray="235.6"
+                  stroke-dashoffset="40"
+                />
+                <circle
+                  id="secArcDot"
+                  cx="160"
+                  cy="52"
+                  r="6"
+                  fill="#ffffff"
+                  stroke="#10b981"
+                  stroke-width="3.5"
+                />
+              </svg>
+              <div class="hero-score-center">
+                <div class="hero-score-number" id="secScoreNumber">--</div>
+                <div class="hero-score-label" id="secScoreLabel">Security Score</div>
+              </div>
+            </div>
+            <div class="sec-pills-row">
+              <span class="sec-grade-pill" id="secGradePill">Grade —</span>
+              <span class="hero-status-pill" id="secStatusPill">Evaluating...</span>
             </div>
           </div>
-          <!-- Status Tag / Pill (e.g. "To improve", "Good", etc. - Exactly like Image 1) -->
-          <div class="hero-status-pill" id="heroStatusPill">Evaluating...</div>
-        </div>
-      </div>
 
-      <!-- Category Score Cards List (Image 1 Style Stacked Cards) -->
-      <div class="category-cards-wrap" id="categoryCardsWrap">
-        <!-- Rendered dynamically by popup.js -->
-      </div>
+          <!-- Severity Summary Chips -->
+          <div class="sec-severity-grid" id="secSeverityGrid"></div>
+        </div>
 
-      <!-- Core Web Vitals Summary Card -->
-      <div class="card cwv-card" id="cwvSummaryCard">
-        <div class="section-header">
-          <span class="section-label">Core Web Vitals</span>
-          <span class="section-hint" id="cwvDeviceLabel">Desktop</span>
-        </div>
-        <div class="cwv-pill-grid" id="cwvPillsGrid">
-          <!-- Rendered dynamically by popup.js -->
-        </div>
-      </div>
+        <!-- 6 Security Layer Score Cards -->
+        <div class="category-cards-wrap" id="secCategoryCardsWrap"></div>
 
-      <!-- Side-by-Side Dual Comparison Grid (Shown when Compare tab selected) -->
-      <div class="comparison-columns hidden" id="comparisonColumns">
-        <div class="device-score-col" id="desktopScoreCol">
-          <div class="col-header"><span>🖥️ Desktop</span></div>
-          <div class="gauges-grid" id="desktopGauges"></div>
-          <div class="cwv-mini-list" id="desktopCwvList"></div>
+        <!-- Top Security Vulnerabilities & Remediation Cards -->
+        <div class="card opportunities-card" id="secFindingsCard">
+          <div class="section-header">
+            <span class="section-label">Vulnerabilities &amp; Fixes</span>
+            <span class="section-hint" id="secFindingsCountLabel">0 issues</span>
+          </div>
+          <div class="opportunities-list" id="secFindingsList"></div>
         </div>
-        <div class="device-score-col" id="mobileScoreCol">
-          <div class="col-header"><span>📱 Mobile</span></div>
-          <div class="gauges-grid" id="mobileGauges"></div>
-          <div class="cwv-mini-list" id="mobileCwvList"></div>
-        </div>
-      </div>
 
-      <!-- Top Optimization Opportunities (Image 1 Style Impact Cards) -->
-      <div class="card opportunities-card" id="opportunitiesCard">
-        <div class="section-header">
-          <span class="section-label">Top Impact Fixes</span>
-          <span class="section-hint">High priority</span>
-        </div>
-        <div class="opportunities-list" id="opportunitiesList">
-          <!-- Rendered dynamically -->
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="dashboard-actions">
-        <button type="button" id="copyAiPromptBtn" class="copy-ai-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-          <span>Copy AI Prompt + Report to Clipboard</span>
-        </button>
-        <div class="secondary-actions">
-          <button type="button" id="downloadSelectedBtn" class="secondary-btn" title="Download selected reports">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download Files
+        <!-- Security Action Buttons -->
+        <div class="dashboard-actions">
+          <button type="button" id="copySecAiPromptBtn" class="copy-ai-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span>Copy AI Security Fix Prompt + Report</span>
           </button>
-          <button type="button" id="downloadAiMdBtn" class="secondary-btn" title="Save .ai.md report">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            Save .ai.md
-          </button>
+          <div class="secondary-actions">
+            <button type="button" id="downloadSecJsonBtn" class="secondary-btn">
+              ⬇️ Save .security.json
+            </button>
+            <button type="button" id="downloadSecMdBtn" class="secondary-btn">
+              📄 Save .security.md
+            </button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </div>
 
   <script type="module" src="popup.js"></script>

@@ -22,6 +22,7 @@ const CORE_METRICS = [
 ];
 
 const DEFAULT_SETTINGS = {
+  activeModeTab: 'lighthouse', // 'lighthouse' | 'security'
   deviceMode: 'both', // 'both' | 'desktop' | 'mobile'
   categories: {
     performance: true,
@@ -34,7 +35,18 @@ const DEFAULT_SETTINGS = {
     html: false,
     aiSummary: true
   },
-  autoDownload: true
+  autoDownload: true,
+  secScanScope: 'full', // 'full' | 'quick'
+  secMaxPages: 10, // 5 | 10 | 25
+  secAutoDownload: true,
+  secModules: {
+    headers: true,
+    cookies: true,
+    tls: true,
+    exposure: true,
+    dom: true,
+    cors: true
+  }
 };
 
 // State
@@ -42,6 +54,7 @@ let currentSettings = structuredClone(DEFAULT_SETTINGS);
 let isServerOnline = false;
 let isAuditing = false;
 let lastAuditPayload = null;
+let lastSecurityPayload = null;
 let timerInterval = null;
 
 // DOM Elements
@@ -105,7 +118,45 @@ const els = {
   cwvPillsGrid: document.getElementById('cwvPillsGrid'),
   opportunitiesCard: document.getElementById('opportunitiesCard'),
   opportunitiesList: document.getElementById('opportunitiesList'),
-  heroGaugeContainer: document.getElementById('heroGaugeContainer')
+  heroGaugeContainer: document.getElementById('heroGaugeContainer'),
+  // Main Mode Switcher
+  tabBtnLighthouse: document.getElementById('tabBtnLighthouse'),
+  tabBtnSecurity: document.getElementById('tabBtnSecurity'),
+  lighthouseTabPanel: document.getElementById('lighthouseTabPanel'),
+  securityTabPanel: document.getElementById('securityTabPanel'),
+  // Security Scanner Controls & Dashboard
+  secScopeFull: document.getElementById('secScopeFull'),
+  secScopeQuick: document.getElementById('secScopeQuick'),
+  secScopeLabelFull: document.getElementById('secScopeLabelFull'),
+  secScopeLabelQuick: document.getElementById('secScopeLabelQuick'),
+  secCrawlLimitRow: document.getElementById('secCrawlLimitRow'),
+  secAutoDownloadToggle: document.getElementById('secAutoDownloadToggle'),
+  secModHeaders: document.getElementById('secModHeaders'),
+  secModCookies: document.getElementById('secModCookies'),
+  secModTls: document.getElementById('secModTls'),
+  secModExposure: document.getElementById('secModExposure'),
+  secModDom: document.getElementById('secModDom'),
+  secModCors: document.getElementById('secModCors'),
+  runSecurityBtn: document.getElementById('runSecurityBtn'),
+  runSecurityBtnText: document.getElementById('runSecurityBtnText'),
+  securityDashboardSection: document.getElementById('securityDashboardSection'),
+  secStackBadge: document.getElementById('secStackBadge'),
+  secMeta: document.getElementById('secMeta'),
+  clearSecurityResultsBtn: document.getElementById('clearSecurityResultsBtn'),
+  secArcProgress: document.getElementById('secArcProgress'),
+  secArcDot: document.getElementById('secArcDot'),
+  secScoreNumber: document.getElementById('secScoreNumber'),
+  secScoreLabel: document.getElementById('secScoreLabel'),
+  secGradePill: document.getElementById('secGradePill'),
+  secStatusPill: document.getElementById('secStatusPill'),
+  secSeverityGrid: document.getElementById('secSeverityGrid'),
+  secCategoryCardsWrap: document.getElementById('secCategoryCardsWrap'),
+  secFindingsCard: document.getElementById('secFindingsCard'),
+  secFindingsCountLabel: document.getElementById('secFindingsCountLabel'),
+  secFindingsList: document.getElementById('secFindingsList'),
+  copySecAiPromptBtn: document.getElementById('copySecAiPromptBtn'),
+  downloadSecJsonBtn: document.getElementById('downloadSecJsonBtn'),
+  downloadSecMdBtn: document.getElementById('downloadSecMdBtn')
 };
 
 let currentDashboardView = 'desktop'; // 'desktop' | 'mobile' | 'compare'
@@ -130,7 +181,8 @@ async function loadSettings() {
         ...DEFAULT_SETTINGS,
         ...data.settings,
         categories: { ...DEFAULT_SETTINGS.categories, ...(data.settings.categories || {}) },
-        formats: { ...DEFAULT_SETTINGS.formats, ...(data.settings.formats || {}) }
+        formats: { ...DEFAULT_SETTINGS.formats, ...(data.settings.formats || {}) },
+        secModules: { ...DEFAULT_SETTINGS.secModules, ...(data.settings.secModules || {}) }
       };
     }
   } catch (err) {
@@ -147,7 +199,52 @@ async function saveSettings() {
   }
 }
 
+function setModeTabUI(tab) {
+  const isSec = tab === 'security';
+  currentSettings.activeModeTab = isSec ? 'security' : 'lighthouse';
+  if (els.tabBtnLighthouse) {
+    els.tabBtnLighthouse.classList.toggle('active', !isSec);
+    els.tabBtnLighthouse.setAttribute('aria-selected', String(!isSec));
+  }
+  if (els.tabBtnSecurity) {
+    els.tabBtnSecurity.classList.toggle('active', isSec);
+    els.tabBtnSecurity.setAttribute('aria-selected', String(isSec));
+  }
+  if (els.lighthouseTabPanel) els.lighthouseTabPanel.classList.toggle('hidden', isSec);
+  if (els.securityTabPanel) els.securityTabPanel.classList.toggle('hidden', !isSec);
+}
+
+function setSecScopeUI(scope) {
+  const isFull = scope !== 'quick';
+  currentSettings.secScanScope = isFull ? 'full' : 'quick';
+  if (els.secScopeFull) els.secScopeFull.checked = isFull;
+  if (els.secScopeQuick) els.secScopeQuick.checked = !isFull;
+  if (els.secScopeLabelFull) els.secScopeLabelFull.classList.toggle('active', isFull);
+  if (els.secScopeLabelQuick) els.secScopeLabelQuick.classList.toggle('active', !isFull);
+  if (els.secCrawlLimitRow) els.secCrawlLimitRow.classList.toggle('hidden', !isFull);
+  updateSecurityButtonLabel();
+}
+
+function setSecMaxPagesUI(pages) {
+  const num = [5, 10, 25].includes(Number(pages)) ? Number(pages) : 10;
+  currentSettings.secMaxPages = num;
+  document.querySelectorAll('.crawl-pill').forEach((btn) => {
+    btn.classList.toggle('active', Number(btn.dataset.pages) === num);
+  });
+  updateSecurityButtonLabel();
+}
+
+function updateSecurityButtonLabel() {
+  if (isAuditing || !els.runSecurityBtnText) return;
+  if (currentSettings.secScanScope === 'full') {
+    els.runSecurityBtnText.textContent = `Run Full Site Security Audit (Up to ${currentSettings.secMaxPages} Pages)`;
+  } else {
+    els.runSecurityBtnText.textContent = 'Run Quick Page Security Audit';
+  }
+}
+
 function applySettingsToUI() {
+  setModeTabUI(currentSettings.activeModeTab || 'lighthouse');
   setDeviceModeUI(currentSettings.deviceMode);
 
   els.catPerformance.checked = Boolean(currentSettings.categories.performance);
@@ -160,7 +257,21 @@ function applySettingsToUI() {
   els.fmtJson.checked = Boolean(currentSettings.formats.json);
   els.fmtHtml.checked = Boolean(currentSettings.formats.html);
 
+  // Security Settings UI
+  setSecScopeUI(currentSettings.secScanScope || 'full');
+  setSecMaxPagesUI(currentSettings.secMaxPages || 10);
+  if (els.secAutoDownloadToggle) {
+    els.secAutoDownloadToggle.checked = Boolean(currentSettings.secAutoDownload);
+  }
+  if (els.secModHeaders) els.secModHeaders.checked = Boolean(currentSettings.secModules.headers);
+  if (els.secModCookies) els.secModCookies.checked = Boolean(currentSettings.secModules.cookies);
+  if (els.secModTls) els.secModTls.checked = Boolean(currentSettings.secModules.tls);
+  if (els.secModExposure) els.secModExposure.checked = Boolean(currentSettings.secModules.exposure);
+  if (els.secModDom) els.secModDom.checked = Boolean(currentSettings.secModules.dom);
+  if (els.secModCors) els.secModCors.checked = Boolean(currentSettings.secModules.cors);
+
   updateRunButtonLabel();
+  updateSecurityButtonLabel();
 }
 
 function setDeviceModeUI(mode) {
@@ -239,10 +350,14 @@ async function checkLocalServerHealth() {
 
 async function restorePreviousDashboard() {
   try {
-    const stored = await chrome.storage.local.get(['lastAuditCache']);
+    const stored = await chrome.storage.local.get(['lastAuditCache', 'lastSecurityCache']);
     if (stored && stored.lastAuditCache) {
       lastAuditPayload = stored.lastAuditCache;
       renderDashboard(lastAuditPayload);
+    }
+    if (stored && stored.lastSecurityCache) {
+      lastSecurityPayload = stored.lastSecurityCache;
+      renderSecurityDashboard(lastSecurityPayload);
     }
   } catch (_) {
     // ignore
@@ -254,6 +369,16 @@ async function restorePreviousDashboard() {
    ========================================================================== */
 
 function bindEvents() {
+  // Main Mode Tab Switching (Lighthouse vs Security Scanner)
+  els.tabBtnLighthouse?.addEventListener('click', () => {
+    setModeTabUI('lighthouse');
+    saveSettings();
+  });
+  els.tabBtnSecurity?.addEventListener('click', () => {
+    setModeTabUI('security');
+    saveSettings();
+  });
+
   els.serverStatusPill.addEventListener('click', () => {
     checkLocalServerHealth();
   });
@@ -383,6 +508,106 @@ function bindEvents() {
     clearError();
     try {
       await chrome.storage.local.remove(['lastAuditCache']);
+      chrome.runtime.sendMessage({ action: 'SET_BADGE', text: '' });
+    } catch (_) {
+      // ignore
+    }
+  });
+
+  // =========================================================================
+  // Security Scanner Tab Event Listeners
+  // =========================================================================
+  els.secScopeFull?.addEventListener('change', () => {
+    setSecScopeUI('full');
+    saveSettings();
+  });
+  els.secScopeQuick?.addEventListener('change', () => {
+    setSecScopeUI('quick');
+    saveSettings();
+  });
+
+  document.querySelectorAll('.crawl-pill').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setSecMaxPagesUI(Number(btn.dataset.pages));
+      saveSettings();
+    });
+  });
+
+  const onSecModuleChange = () => {
+    currentSettings.secAutoDownload = Boolean(els.secAutoDownloadToggle?.checked);
+    currentSettings.secModules = {
+      headers: Boolean(els.secModHeaders?.checked),
+      cookies: Boolean(els.secModCookies?.checked),
+      tls: Boolean(els.secModTls?.checked),
+      exposure: Boolean(els.secModExposure?.checked),
+      dom: Boolean(els.secModDom?.checked),
+      cors: Boolean(els.secModCors?.checked)
+    };
+    if (!Object.values(currentSettings.secModules).some(Boolean)) {
+      currentSettings.secModules.headers = true;
+      if (els.secModHeaders) els.secModHeaders.checked = true;
+    }
+    saveSettings();
+  };
+
+  els.secAutoDownloadToggle?.addEventListener('change', onSecModuleChange);
+  els.secModHeaders?.addEventListener('change', onSecModuleChange);
+  els.secModCookies?.addEventListener('change', onSecModuleChange);
+  els.secModTls?.addEventListener('change', onSecModuleChange);
+  els.secModExposure?.addEventListener('change', onSecModuleChange);
+  els.secModDom?.addEventListener('change', onSecModuleChange);
+  els.secModCors?.addEventListener('change', onSecModuleChange);
+
+  els.runSecurityBtn?.addEventListener('click', () => {
+    runSecurityAuditFlow();
+  });
+
+  els.copySecAiPromptBtn?.addEventListener('click', async () => {
+    if (!lastSecurityPayload || !lastSecurityPayload.securityReport?.markdown) return;
+    try {
+      await navigator.clipboard.writeText(lastSecurityPayload.securityReport.markdown);
+      const orig = els.copySecAiPromptBtn.innerHTML;
+      els.copySecAiPromptBtn.innerHTML = '<span>✅ Copied Security Fix Prompt + Report!</span>';
+      setTimeout(() => {
+        els.copySecAiPromptBtn.innerHTML = orig;
+      }, 2400);
+    } catch (err) {
+      showError('Failed to copy security report: ' + err.message);
+    }
+  });
+
+  els.downloadSecJsonBtn?.addEventListener('click', () => {
+    if (lastSecurityPayload && lastSecurityPayload.securityReport?.json) {
+      const prefix = buildFilePrefix(lastSecurityPayload.url, lastSecurityPayload.timestamp);
+      downloadFileViaBackground(
+        `${prefix}-security-report.json`,
+        JSON.stringify(lastSecurityPayload.securityReport.json, null, 2),
+        'application/json'
+      );
+    }
+  });
+
+  els.downloadSecMdBtn?.addEventListener('click', () => {
+    if (lastSecurityPayload && lastSecurityPayload.securityReport?.markdown) {
+      const prefix = buildFilePrefix(lastSecurityPayload.url, lastSecurityPayload.timestamp);
+      downloadFileViaBackground(
+        `${prefix}-security-report.md`,
+        lastSecurityPayload.securityReport.markdown,
+        'text/markdown'
+      );
+    }
+  });
+
+  els.clearSecurityResultsBtn?.addEventListener('click', async () => {
+    lastSecurityPayload = null;
+    if (els.secCategoryCardsWrap) els.secCategoryCardsWrap.innerHTML = '';
+    if (els.secFindingsList) els.secFindingsList.innerHTML = '';
+    if (els.secSeverityGrid) els.secSeverityGrid.innerHTML = '';
+    if (els.secMeta) els.secMeta.textContent = '';
+    if (els.securityDashboardSection) els.securityDashboardSection.classList.add('hidden');
+    clearError();
+    try {
+      await chrome.storage.local.remove(['lastSecurityCache']);
       chrome.runtime.sendMessage({ action: 'SET_BADGE', text: '' });
     } catch (_) {
       // ignore
@@ -1401,6 +1626,549 @@ async function triggerReportDownloads(payload, forceAllSelected = false) {
         )
       );
     }
+  }
+
+  await Promise.allSettled(jobs);
+}
+
+/* ==========================================================================
+   6-Layer Security Scanner Execution (Local Engine + Browser Fallback)
+   ========================================================================== */
+
+function getSelectedSecModules() {
+  return Object.entries(currentSettings.secModules || {})
+    .filter(([, checked]) => checked)
+    .map(([key]) => key);
+}
+
+async function runSecurityAuditFlow() {
+  if (isAuditing) return;
+
+  const targetUrl = (els.urlInput.value || '').trim();
+  if (!/^https?:\/\//i.test(targetUrl)) {
+    showError('Please enter a valid http:// or https:// URL to scan.');
+    return;
+  }
+
+  clearError();
+  isAuditing = true;
+  if (els.runSecurityBtn) els.runSecurityBtn.disabled = true;
+  if (els.runSecurityBtnText) els.runSecurityBtnText.textContent = 'Scanning Website Security...';
+  chrome.runtime.sendMessage({ action: 'SET_BADGE', text: 'SEC', color: '#0284c7' });
+
+  const scanScope = currentSettings.secScanScope || 'full';
+  const maxPages = currentSettings.secMaxPages || 10;
+  const modules = getSelectedSecModules();
+
+  startProgressTimer();
+  setProgressUI(
+    1,
+    scanScope === 'full' ? 4 : 3,
+    'Step 1: Analyzing HTTP Security Headers & TLS...',
+    `Scanning ${targetUrl}...`,
+    22
+  );
+
+  try {
+    const serverReady = await checkLocalServerHealth();
+    let finalSecPayload = null;
+
+    if (serverReady) {
+      finalSecPayload = await runSecurityViaLocalServer({
+        url: targetUrl,
+        scanScope,
+        maxPages,
+        modules
+      });
+    } else {
+      finalSecPayload = await runBrowserSecurityFallback({
+        url: targetUrl,
+        scanScope,
+        maxPages,
+        modules
+      });
+    }
+
+    setProgressUI(4, 4, 'Security Audit Completed!', 'Generating security report...', 100);
+    lastSecurityPayload = finalSecPayload;
+
+    await chrome.storage.local.set({ lastSecurityCache: finalSecPayload });
+    renderSecurityDashboard(finalSecPayload);
+
+    if (currentSettings.secAutoDownload) {
+      await triggerSecurityReportDownloads(finalSecPayload);
+    }
+
+    const grade = finalSecPayload.securityReport?.json?.grade || 'OK';
+    const score = finalSecPayload.securityReport?.json?.overallScore ?? 100;
+    const badgeColor = score >= 88 ? '#10b981' : score >= 68 ? '#f59e0b' : '#ef4444';
+    chrome.runtime.sendMessage({ action: 'SET_BADGE', text: grade, color: badgeColor });
+  } catch (err) {
+    console.error('Security scan error:', err);
+    showError(err.message || 'Security scan failed.');
+    chrome.runtime.sendMessage({ action: 'SET_BADGE', text: 'ERR', color: '#ef4444' });
+  } finally {
+    stopProgressTimer();
+    isAuditing = false;
+    if (els.runSecurityBtn) els.runSecurityBtn.disabled = false;
+    setTimeout(() => {
+      if (!isAuditing) {
+        els.progressSection.classList.add('hidden');
+      }
+    }, 900);
+    updateSecurityButtonLabel();
+  }
+}
+
+async function runSecurityViaLocalServer({ url, scanScope, maxPages, modules }) {
+  const response = await fetch(`${LOCAL_SERVER_URL}/api/security-audit`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/x-ndjson'
+    },
+    body: JSON.stringify({
+      url,
+      scanScope,
+      maxPages,
+      modules,
+      stream: true
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Local Security Engine error (${response.status}): ${errText}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let resultPayload = null;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let newlineIdx;
+    while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
+      const line = buffer.slice(0, newlineIdx).trim();
+      buffer = buffer.slice(newlineIdx + 1);
+      if (!line) continue;
+
+      const event = JSON.parse(line);
+      if (event.type === 'progress') {
+        const step = event.step || 1;
+        const total = event.totalSteps || 4;
+        setProgressUI(
+          step,
+          total,
+          event.statusText || 'Running security checks...',
+          `6-Layer Security Engine scanning ${url}`
+        );
+      } else if (event.type === 'security-result' && event.ok) {
+        resultPayload = event;
+      } else if (event.type === 'error' || event.ok === false) {
+        throw new Error(event.error || 'Local security scan failed.');
+      }
+    }
+  }
+
+  if (!resultPayload) {
+    throw new Error('Local server closed stream before returning security report.');
+  }
+
+  return resultPayload;
+}
+
+/**
+ * Browser-Native Security Fallback when Local Server (localhost:9876) is offline.
+ * Uses extension host_permissions (<all_urls>) to inspect HTTP headers, sensitive paths, and DOM.
+ */
+async function runBrowserSecurityFallback({ url, scanScope, maxPages, modules }) {
+  const startedAt = new Date().toISOString();
+  const parsedUrl = new URL(url.trim());
+  const origin = parsedUrl.origin;
+  const isHttps = parsedUrl.protocol === 'https:';
+  const activeModules = new Set(modules && modules.length ? modules : ['headers', 'cookies', 'tls', 'exposure', 'dom', 'cors']);
+
+  const findings = [];
+  const passedChecks = [];
+  const penalties = { headers: 0, cookies: 0, tls: 0, exposure: 0, dom: 0, cors: 0 };
+
+  const addFinding = (f) => {
+    findings.push(f);
+    if (penalties[f.category] !== undefined) penalties[f.category] += f.penalty || 12;
+  };
+
+  setProgressUI(1, 3, 'Step 1/3: Fetching HTTP headers (Browser Fallback)...', url, 30);
+  const res = await fetch(parsedUrl.href, { method: 'GET', cache: 'no-store' });
+  const headers = res.headers;
+  const html = await res.text();
+
+  if (activeModules.has('headers')) {
+    if (!headers.get('content-security-policy')) {
+      addFinding({
+        id: 'missing-csp',
+        category: 'headers',
+        severity: 'high',
+        title: 'Missing Content-Security-Policy (CSP) Header',
+        description: 'No CSP header detected to mitigate XSS and unauthorized script execution.',
+        evidence: 'Content-Security-Policy: Not Present',
+        remediation: "Configure a strict Content-Security-Policy header (e.g., default-src 'self').",
+        penalty: 25
+      });
+    } else {
+      passedChecks.push({ id: 'csp', category: 'headers', title: 'Content-Security-Policy header present' });
+    }
+
+    if (isHttps && !headers.get('strict-transport-security')) {
+      addFinding({
+        id: 'missing-hsts',
+        category: 'headers',
+        severity: 'high',
+        title: 'Missing Strict-Transport-Security (HSTS) Header',
+        description: 'HTTPS site does not enforce HSTS.',
+        evidence: 'Strict-Transport-Security: Not Present',
+        remediation: 'Add Strict-Transport-Security: max-age=31536000; includeSubDomains; preload',
+        penalty: 20
+      });
+    }
+
+    if (!headers.get('x-frame-options') && !(headers.get('content-security-policy') || '').includes('frame-ancestors')) {
+      addFinding({
+        id: 'missing-xfo',
+        category: 'headers',
+        severity: 'medium',
+        title: 'Missing Clickjacking Protection (X-Frame-Options)',
+        description: 'Site can be framed by third-party pages.',
+        evidence: 'X-Frame-Options: Not Present',
+        remediation: 'Add X-Frame-Options: SAMEORIGIN',
+        penalty: 15
+      });
+    }
+
+    if ((headers.get('x-content-type-options') || '').toLowerCase() !== 'nosniff') {
+      addFinding({
+        id: 'missing-xcto',
+        category: 'headers',
+        severity: 'medium',
+        title: 'Missing X-Content-Type-Options: nosniff',
+        description: 'Prevents MIME-type sniffing attacks.',
+        evidence: 'X-Content-Type-Options: Not Present',
+        remediation: 'Add X-Content-Type-Options: nosniff',
+        penalty: 12
+      });
+    }
+  }
+
+  if (activeModules.has('tls')) {
+    if (!isHttps && !isLocalhostUrl(parsedUrl.href)) {
+      addFinding({
+        id: 'http-unencrypted',
+        category: 'tls',
+        severity: 'critical',
+        title: 'Unencrypted HTTP Connection',
+        description: 'Site is served over plain HTTP instead of HTTPS.',
+        evidence: parsedUrl.href,
+        remediation: 'Enforce HTTPS across all pages.',
+        penalty: 50
+      });
+    } else {
+      passedChecks.push({ id: 'https-ok', category: 'tls', title: 'HTTPS encryption verified' });
+    }
+  }
+
+  if (activeModules.has('exposure')) {
+    setProgressUI(2, 3, 'Step 2/3: Checking /.env & /.git exposure...', url, 65);
+    for (const p of ['/.env', '/.git/HEAD']) {
+      try {
+        const probeRes = await fetch(new URL(p, origin).href, { method: 'GET' });
+        if (probeRes.status === 200) {
+          const t = (await probeRes.text()).slice(0, 300);
+          if ((p === '/.env' && /^[A-Z0-9_]+=/m.test(t) && !t.trim().startsWith('<')) || (p === '/.git/HEAD' && t.startsWith('ref:'))) {
+            addFinding({
+              id: `exposed-${p}`,
+              category: 'exposure',
+              severity: 'critical',
+              title: `Publicly Exposed ${p} File`,
+              description: `${p} is publicly accessible on ${origin}.`,
+              evidence: `HTTP 200 at ${origin}${p}`,
+              remediation: `Deny public access to ${p} immediately.`,
+              penalty: 60
+            });
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  const categoryScores = {};
+  for (const k of ['headers', 'cookies', 'tls', 'exposure', 'dom', 'cors']) {
+    categoryScores[k] = Math.max(0, 100 - (penalties[k] || 0));
+  }
+  const overallScore = Math.round(
+    Object.values(categoryScores).reduce((a, b) => a + b, 0) / 6
+  );
+  const grade =
+    overallScore >= 95 ? 'A+' : overallScore >= 88 ? 'A' : overallScore >= 80 ? 'B' : overallScore >= 68 ? 'C' : overallScore >= 50 ? 'D' : 'F';
+
+  const reportJson = {
+    schema: 'autolighthouse-security-report/v1',
+    url: parsedUrl.href,
+    origin,
+    scanScope,
+    pagesScanned: 1,
+    scannedUrls: [parsedUrl.href],
+    generatedAt: startedAt,
+    detectedStack: [headers.get('server') || headers.get('x-powered-by') || 'Browser Fallback'],
+    overallScore,
+    grade,
+    categoryScores,
+    severityCounts: {
+      critical: findings.filter((f) => f.severity === 'critical').length,
+      high: findings.filter((f) => f.severity === 'high').length,
+      medium: findings.filter((f) => f.severity === 'medium').length,
+      low: findings.filter((f) => f.severity === 'low').length,
+      passed: passedChecks.length
+    },
+    findings,
+    passedChecks
+  };
+
+  const mdLines = [
+    `# 🛡️ Website Security Audit Report`,
+    `- **Target URL:** ${parsedUrl.href}`,
+    `- **Overall Score:** **${overallScore}/100 (Grade: ${grade})**`,
+    '',
+    `## Findings (${findings.length})`,
+    ...findings.map((f) => `- **[${f.severity.toUpperCase()}] ${f.title}**: ${f.description} (Fix: ${f.remediation})`)
+  ];
+
+  return {
+    ok: true,
+    type: 'security-result',
+    url: parsedUrl.href,
+    timestamp: startedAt,
+    securityReport: {
+      json: reportJson,
+      markdown: mdLines.join('\n')
+    }
+  };
+}
+
+function renderSecurityDashboard(payload) {
+  const report = payload?.securityReport?.json;
+  if (!report || !els.securityDashboardSection) return;
+
+  els.securityDashboardSection.classList.remove('hidden');
+
+  const safeScore = Math.max(0, Math.min(100, Math.round(report.overallScore ?? 0)));
+
+  // 1. Hero Semicircular Arc & Dot
+  if (els.secArcProgress) {
+    const arcLen = 235.619;
+    els.secArcProgress.style.strokeDashoffset = (arcLen * (1 - safeScore / 100)).toFixed(1);
+  }
+  if (els.secArcDot) {
+    const rad = Math.PI * (1 - safeScore / 100);
+    const cx = 100 - 75 * Math.cos(rad);
+    const cy = 105 - 75 * Math.sin(rad);
+    els.secArcDot.setAttribute('cx', cx.toFixed(1));
+    els.secArcDot.setAttribute('cy', cy.toFixed(1));
+    const dotColor = safeScore >= 88 ? '#10b981' : safeScore >= 68 ? '#f59e0b' : '#ef4444';
+    els.secArcDot.setAttribute('stroke', dotColor);
+  }
+  if (els.secScoreNumber) {
+    els.secScoreNumber.textContent = safeScore;
+  }
+  if (els.secScoreLabel) {
+    els.secScoreLabel.textContent =
+      report.scanScope === 'full'
+        ? `Site Security (${report.pagesScanned || 1} pg)`
+        : 'Page Security Score';
+  }
+
+  // 2. Grade Pill & Status Pill
+  if (els.secGradePill) {
+    const g = report.grade || 'B';
+    els.secGradePill.textContent = `Grade ${g}`;
+    const gClass = g.startsWith('A')
+      ? 'grade-a'
+      : g === 'B'
+      ? 'grade-b'
+      : g === 'C'
+      ? 'grade-c'
+      : 'grade-df';
+    els.secGradePill.className = `sec-grade-pill ${gClass}`;
+  }
+
+  if (els.secStatusPill) {
+    if (safeScore >= 88) {
+      els.secStatusPill.textContent = 'Strong Posture';
+      els.secStatusPill.className = 'hero-status-pill good';
+    } else if (safeScore >= 65) {
+      els.secStatusPill.textContent = 'To improve';
+      els.secStatusPill.className = 'hero-status-pill needs-improvement';
+    } else {
+      els.secStatusPill.textContent = 'High Risk';
+      els.secStatusPill.className = 'hero-status-pill poor';
+    }
+  }
+
+  // 3. Header Meta & Stack
+  if (els.secStackBadge) {
+    els.secStackBadge.textContent = (report.detectedStack || ['Web Server']).slice(0, 2).join(' • ');
+  }
+  if (els.secMeta) {
+    let host = report.url;
+    try {
+      host = new URL(report.url).host;
+    } catch {
+      // ignore
+    }
+    const timeStr = new Date(report.generatedAt || Date.now()).toLocaleTimeString();
+    els.secMeta.textContent = `${host} • ${timeStr}`;
+  }
+
+  // 4. Severity Summary Chips
+  if (els.secSeverityGrid) {
+    const sev = report.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, passed: 0 };
+    els.secSeverityGrid.innerHTML = `
+      <div class="sec-sev-chip">
+        <div class="sec-sev-num" style="color: #dc2626">${sev.critical || 0}</div>
+        <div class="sec-sev-lbl">Critical</div>
+      </div>
+      <div class="sec-sev-chip">
+        <div class="sec-sev-num" style="color: #ea580c">${sev.high || 0}</div>
+        <div class="sec-sev-lbl">High</div>
+      </div>
+      <div class="sec-sev-chip">
+        <div class="sec-sev-num" style="color: #d97706">${sev.medium || 0}</div>
+        <div class="sec-sev-lbl">Medium</div>
+      </div>
+      <div class="sec-sev-chip">
+        <div class="sec-sev-num" style="color: #0284c7">${sev.low || 0}</div>
+        <div class="sec-sev-lbl">Low</div>
+      </div>
+      <div class="sec-sev-chip">
+        <div class="sec-sev-num" style="color: #16a34a">${sev.passed || 0}</div>
+        <div class="sec-sev-lbl">Passed</div>
+      </div>
+    `;
+  }
+
+  // 5. 6-Layer Security Category Cards (Image 1 Style)
+  if (els.secCategoryCardsWrap) {
+    const layerConfig = [
+      { key: 'headers', title: 'HTTP Security Headers', sub: 'CSP, HSTS, Clickjacking, X-Content-Type' },
+      { key: 'tls', title: 'SSL/TLS & Transport', sub: 'HTTPS encryption, TLS 1.2/1.3, Mixed Content' },
+      { key: 'exposure', title: 'Sensitive File Exposure', sub: '/.env, /.git/HEAD, backups, .js.map' },
+      { key: 'cookies', title: 'Cookies & Session Flags', sub: 'HttpOnly, Secure, SameSite protection' },
+      { key: 'dom', title: 'DOM, JS Libs & Secrets', sub: 'Outdated libraries, SRI hashes, leaked keys' },
+      { key: 'cors', title: 'CORS & Info Disclosure', sub: 'Access-Control origins, Server version leaks' }
+    ];
+
+    let cardsHtml = '';
+    for (const layer of layerConfig) {
+      const val = report.categoryScores?.[layer.key];
+      if (val === undefined || val === null) continue;
+      const sc = Math.max(0, Math.min(100, Math.round(val)));
+      const color = getScoreColor(sc);
+      const dashOffset = (87.96 * (1 - sc / 100)).toFixed(1);
+
+      let badgeClass = 'low-impact';
+      let badgeText = 'Secure';
+      if (sc < 60) {
+        badgeClass = 'high-impact';
+        badgeText = 'High Risk';
+      } else if (sc < 90) {
+        badgeClass = 'moderate-impact';
+        badgeText = 'To improve';
+      }
+
+      cardsHtml += `
+        <div class="cat-score-card">
+          <div class="cat-mini-gauge">
+            <svg class="cat-mini-svg" viewBox="0 0 38 38">
+              <circle class="cat-mini-bg" cx="19" cy="19" r="14" />
+              <circle class="cat-mini-arc" cx="19" cy="19" r="14" stroke="${color}" stroke-dasharray="87.96" stroke-dashoffset="${dashOffset}" />
+            </svg>
+            <div class="cat-mini-score" style="color: ${color}">${sc}</div>
+          </div>
+          <div class="cat-info">
+            <div class="cat-title">${layer.title}</div>
+            <div class="cat-sub">${layer.sub}</div>
+          </div>
+          <span class="impact-badge ${badgeClass}">${badgeText}</span>
+        </div>
+      `;
+    }
+    els.secCategoryCardsWrap.innerHTML = cardsHtml;
+  }
+
+  // 6. Detailed Findings & Remediation Cards
+  if (els.secFindingsCard && els.secFindingsList) {
+    const findings = report.findings || [];
+    if (els.secFindingsCountLabel) {
+      els.secFindingsCountLabel.textContent = `${findings.length} issue(s) found`;
+    }
+
+    if (findings.length === 0) {
+      els.secFindingsList.innerHTML = `
+        <div class="sec-finding-card">
+          <div class="sec-finding-title" style="color: #15803d">✅ Zero vulnerabilities detected!</div>
+          <div class="sec-finding-desc">All checked security headers, TLS settings, sensitive paths, and DOM scripts passed inspection.</div>
+        </div>
+      `;
+    } else {
+      els.secFindingsList.innerHTML = findings
+        .slice(0, 12)
+        .map((f) => {
+          const isHigh = f.severity === 'critical' || f.severity === 'high';
+          const badgeClass = isHigh ? 'high-impact' : f.severity === 'medium' ? 'moderate-impact' : 'low-impact';
+          const badgeLabel = f.severity.toUpperCase();
+          return `
+            <div class="sec-finding-card">
+              <div class="sec-finding-top">
+                <div class="sec-finding-title">${f.title}</div>
+                <span class="impact-badge ${badgeClass}">${badgeLabel}</span>
+              </div>
+              <div class="sec-finding-desc">${f.description}</div>
+              ${f.remediation ? `<div class="sec-finding-fix">💡 <strong>Fix:</strong> ${f.remediation}</div>` : ''}
+            </div>
+          `;
+        })
+        .join('');
+    }
+  }
+}
+
+async function triggerSecurityReportDownloads(payload) {
+  if (!payload || !payload.securityReport) return;
+  const prefix = buildFilePrefix(payload.url, payload.timestamp);
+  const jobs = [];
+
+  if (payload.securityReport.json) {
+    jobs.push(
+      downloadFileViaBackground(
+        `${prefix}-security-report.json`,
+        JSON.stringify(payload.securityReport.json, null, 2),
+        'application/json'
+      )
+    );
+  }
+  if (payload.securityReport.markdown) {
+    jobs.push(
+      downloadFileViaBackground(
+        `${prefix}-security-report.md`,
+        payload.securityReport.markdown,
+        'text/markdown'
+      )
+    );
   }
 
   await Promise.allSettled(jobs);

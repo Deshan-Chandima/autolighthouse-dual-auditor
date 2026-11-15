@@ -15,12 +15,15 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 
-# Generated Lighthouse reports
+# Generated Lighthouse reports & release archives
 lighthouse-reports/
+*.zip
 *.report.html
 *.report.json
 *.ai.json
 *.ai.md
+*.security.json
+*.security.md
 
 # OS / Editor files
 .DS_Store

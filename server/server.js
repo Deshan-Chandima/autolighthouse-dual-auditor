@@ -7,6 +7,7 @@ import {
   buildCombinedAiReport,
   buildCombinedAiMarkdown
 } from './ai-formatter.js';
+import { runSecurityAudit } from './security-scanner.js';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 9876;
 const app = express();
@@ -318,11 +319,101 @@ app.post('/api/audit', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/security-audit
+ * Body: {
+ *   url: string,
+ *   scanScope: 'quick' | 'full',
+ *   maxPages: 5 | 10 | 25,
+ *   modules: ['headers', 'cookies', 'tls', 'exposure', 'dom', 'cors'],
+ *   stream?: boolean
+ * }
+ */
+app.post('/api/security-audit', async (req, res) => {
+  const {
+    url,
+    scanScope = 'quick',
+    maxPages = 10,
+    modules = ['headers', 'cookies', 'tls', 'exposure', 'dom', 'cors'],
+    stream = false
+  } = req.body || {};
+
+  if (!url || typeof url !== 'string' || !/^https?:\/\//i.test(url.trim())) {
+    return res.status(400).json({
+      ok: false,
+      error: 'A valid http:// or https:// URL is required.'
+    });
+  }
+
+  const targetUrl = url.trim();
+  const wantStream = Boolean(stream) || (req.headers.accept && req.headers.accept.includes('application/x-ndjson'));
+  if (wantStream) {
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders?.();
+  }
+
+  const sendProgress = (payload) => {
+    updateState({ running: true, url: targetUrl, ...payload });
+    if (wantStream && !res.writableEnded) {
+      res.write(JSON.stringify({ type: 'progress', ...activeAuditState }) + '\n');
+    }
+  };
+
+  try {
+    console.log(`[AutoLighthouse Security] Starting ${scanScope} security audit for ${targetUrl}...`);
+    const resultPayload = await runSecurityAudit({
+      url: targetUrl,
+      scanScope,
+      maxPages: Math.max(1, Math.min(30, Number(maxPages) || 10)),
+      modules,
+      onProgress: sendProgress
+    });
+
+    updateState({
+      running: false,
+      statusText: 'Security Audit Completed'
+    });
+
+    console.log(`[AutoLighthouse Security] Completed security audit for ${targetUrl} (Score: ${resultPayload.securityReport.json.overallScore}/100, Grade: ${resultPayload.securityReport.json.grade})`);
+
+    if (wantStream) {
+      res.write(JSON.stringify(resultPayload) + '\n');
+      res.end();
+    } else {
+      res.json(resultPayload);
+    }
+  } catch (error) {
+    console.error('[AutoLighthouse Security] Security audit failed:', error);
+    updateState({
+      running: false,
+      statusText: `Error: ${error.message || 'Security scan failed'}`
+    });
+
+    const errPayload = {
+      ok: false,
+      type: 'error',
+      error: error.message || 'Failed to run security audit.'
+    };
+
+    if (wantStream) {
+      if (!res.writableEnded) {
+        res.write(JSON.stringify(errPayload) + '\n');
+        res.end();
+      }
+    } else if (!res.headersSent) {
+      res.status(500).json(errPayload);
+    }
+  }
+});
+
 app.listen(PORT, '127.0.0.1', () => {
   console.log('==============================================================');
   console.log(' 🚀 AutoLighthouse Dual Auditor Engine is ONLINE');
   console.log(` 🌐 Listening at: http://localhost:${PORT}`);
   console.log(` 🩺 Health Check: http://localhost:${PORT}/api/health`);
   console.log(` ⚡ Audit API:    POST http://localhost:${PORT}/api/audit`);
+  console.log(` 🛡️ Security API: POST http://localhost:${PORT}/api/security-audit`);
   console.log('==============================================================');
 });
