@@ -290,7 +290,7 @@ export function buildSingleDeviceAiSummary(lhr, device = 'desktop') {
  */
 export function buildCombinedAiReport({ url, timestamp, desktopSummary, mobileSummary }) {
   return {
-    schema: 'autolighthouse-ai-report/v1',
+    schema: 'sitelens-ai-report/v1',
     url,
     generatedAt: timestamp || new Date().toISOString(),
     summaryComparison: {
@@ -314,7 +314,7 @@ export function buildCombinedAiMarkdown(combinedReport) {
   const desktop = devices?.desktop || null;
   const mobile = devices?.mobile || null;
 
-  lines.push(`# Lighthouse Dual Audit Report (AI-Optimized Diagnostic)`);
+  lines.push(`# SiteLens AI Dual Audit Report (Speed & Diagnostics)`);
   lines.push(`- **Target URL:** ${url}`);
   lines.push(`- **Audited At:** ${generatedAt}`);
   lines.push(

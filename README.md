@@ -1,6 +1,30 @@
-# AutoLighthouse Dual Auditor (Desktop + Mobile)
+# SiteLens AI — Web Performance & 6-Layer Security Suite
 
-A production-ready **Chrome Extension (Manifest V3)** paired with a lightweight **Local Node.js Lighthouse Engine** (`http://localhost:9876`) that runs official Google Lighthouse audits for **Desktop and Mobile** sequentially in one click, displays live side-by-side circular score gauges, and automatically downloads **Raw JSON**, **Official HTML**, and **AI-Ready Compact Diagnostic Reports (`.ai.json` & `.ai.md`)**.
+A modern, production-ready **Chrome Extension (Manifest V3)** and lightweight **Local Node.js Engine** (`http://localhost:9876`) that runs official Google Lighthouse audits (Desktop + Mobile), performs deep 6-layer website security scans with site-wide crawling, displays interactive speedometer score gauges, and exports token-optimized **AI-ready diagnostic reports (`.ai.md`, `.ai.json`, `.security.md`, `.security.json`)**.
+
+---
+
+## ✨ Features
+
+### ⚡ 1. Dual Lighthouse Audit (Desktop + Mobile)
+- **1-Click Dual Run**: Automatically runs sequential Desktop (`1350×940` desktop preset) and Mobile (`Moto G4 / Slow 4G` preset) audits in clean, isolated headless Chrome instances (`--headless=new --incognito --no-sandbox`).
+- **Core Web Vitals Comparison**: Side-by-side metrics for FCP, LCP, TBT, CLS, Speed Index, and TTI.
+- **Visual Gauge Dashboard**: Interactive rainbow arc speedometer with dynamic pointer dot and status badges (*Good*, *To improve*, *Needs attention*).
+- **Google PageSpeed Insights Fallback**: Audits public `https://` websites seamlessly even if the local server is offline.
+
+### 🛡️ 2. 6-Layer Defensive Website Security Scanner
+- **🔒 HTTP Security Headers**: Content-Security-Policy (CSP), Strict-Transport-Security (HSTS), X-Frame-Options (Clickjacking), X-Content-Type-Options (nosniff), Referrer-Policy, Permissions-Policy, and COOP.
+- **🍪 Cookies & Session Flags**: Audit `HttpOnly`, `Secure`, `SameSite=Strict/Lax`, and cookie prefixes.
+- **🔐 SSL/TLS & Transport Security**: HTTPS enforcement, TLS 1.2/1.3 protocol validation, certificate expiration tracking, and Mixed Content detection.
+- **🕵️ Sensitive File & Source Map Exposure**: Probes for accidentally exposed `/.env`, `/.git/HEAD`, `/package.json`, `/phpinfo.php`, `/wp-config.php.bak`, and production JavaScript Source Maps (`.js.map`).
+- **📦 Client-Side, DOM & Secret Leaks**: Scans for known vulnerable/outdated JS libraries (jQuery, Lodash, Bootstrap, AngularJS, Moment.js), missing Subresource Integrity (`integrity`), insecure HTTP form submissions, reverse tabnabbing (`target="_blank"`), and hardcoded API keys/secrets (`AIza...`, `sk_live_...`, `AKIA...`, `ghp_...`).
+- **🌐 CORS & Information Disclosure**: Detects overly permissive wildcard CORS (`Access-Control-Allow-Origin: *`) with credentials, and server version leakage via `Server` and `X-Powered-By` headers.
+- **🌐 Site-Wide Crawler**: Choose between **Quick Page Scan** or **Full Site Crawl** across **5, 10 (default), or 25 internal pages**.
+
+### 🤖 3. AI-Optimized Diagnostics & 1-Click Clipboard Prompts
+- **Token-Efficient Reports**: Strips megabytes of trace bloat, preserving exact failing DOM selectors, snippets, wasted milliseconds/bytes, console errors, and security issues.
+- **📋 Copy AI Fix Prompt**: One click copies a structured engineering prompt + Markdown diagnostic report directly to your clipboard, ready to paste into Antigravity, Claude, ChatGPT, or Cursor for instant code patches.
+- **Auto-Download**: Automatically saves `.ai.md`, `.ai.json`, `.security.md`, and `.security.json` to your `Downloads/lighthouse-reports/` folder.
 
 ---
 
@@ -8,82 +32,58 @@ A production-ready **Chrome Extension (Manifest V3)** paired with a lightweight 
 
 ```text
 Performane/
-├── start-server.bat              # 1-click Windows launcher for the Local Lighthouse Server
+├── start-server.bat              # 1-click Windows launcher for Local Engine (localhost:9876)
 ├── README.md                     # Step-by-step setup & usage guide
-├── server/                       # Local Node.js Lighthouse Engine (localhost:9876)
+├── server/                       # Local Node.js Engine
 │   ├── package.json
-│   ├── server.js                 # Express API (/api/health, /api/status, /api/audit)
-│   ├── ai-formatter.js           # Strips LHR bloat into AI-Ready JSON & Markdown
+│   ├── server.js                 # Express API (/api/health, /api/audit, /api/security-audit)
+│   ├── ai-formatter.js           # Generates token-optimized AI Lighthouse reports
+│   ├── security-scanner.js       # 6-Layer Security & Site-Wide Crawler Engine
 │   └── start-server.bat          # Launcher inside server/
-└── extension/                    # Chrome Extension (Manifest V3 - Load Unpacked)
+└── extension/                    # Chrome Extension (Manifest V3)
     ├── manifest.json
     ├── background.js             # MV3 Service Worker (downloads & status badges)
-    ├── popup.html                # Dark-mode popup interface
-    ├── popup.css                 # Modern styling & SVG circular score gauges
-    ├── popup.js                  # Auto URL detection, streaming client, PSI fallback
+    ├── popup.html                # Modern UI with Lighthouse & Security Scanner tabs
+    ├── popup.css                 # Segmented controls, speedometer gauge, impact cards
+    ├── popup.js                  # Auto URL detection, streaming client & dashboard logic
     ├── icon16.png
     ├── icon48.png
-    ├── icon128.png
-    └── icons/
-        ├── icon16.png
-        ├── icon48.png
-        └── icon128.png
+    └── icon128.png
 ```
 
 ---
 
-## 🚀 Step 1: Load the Unpacked Extension into Chrome
+## 🚀 Quick Start Guide
 
-1. Open Google Chrome and navigate to:
-   ```text
-   chrome://extensions
-   ```
-2. Enable **Developer mode** using the toggle switch in the top-right corner.
-3. Click the **Load unpacked** button in the top-left corner.
-4. Select the **`extension`** folder inside this project:
-   ```text
-   d:\Coding\Extention\Performane\extension
-   ```
-5. Click the **Extensions (puzzle piece)** icon in the Chrome toolbar and **Pin** **AutoLighthouse Dual Auditor (Desktop + Mobile)** for quick 1-click access.
-
----
-
-## ⚡ Step 2: Start the Local Lighthouse Engine
-
-To audit `http://localhost:*` development servers or run full local headless Chrome audits:
-
-### Option A: Double-Click Launcher (Windows)
-- Double-click **`start-server.bat`** in the project root (or inside `server/start-server.bat`).
-- A terminal window will open and start the server at `http://localhost:9876`.
-
-### Option B: Command Line (`npm start`)
+### Step 1: Start the Local Engine
+Double-click **`start-server.bat`** in the project root, or run via terminal:
 ```bash
 cd server
 npm install
 npm start
 ```
+The server will start at `http://localhost:9876`. Keep this window open during local audits.
 
-When running, the extension popup's top-right badge will show a glowing green **Local Engine: Online** status indicator.
+### Step 2: Load the Extension into Google Chrome
+1. Open Chrome and navigate to:
+   ```text
+   chrome://extensions
+   ```
+2. Enable **Developer mode** (toggle in the top-right corner).
+3. Click **Load unpacked** (top-left button).
+4. Select the **`extension`** folder:
+   ```text
+   d:\Coding\Extention\Performane\extension
+   ```
+5. Pin **SiteLens AI** to your Chrome toolbar for 1-click access.
 
-> **Cloud Fallback Mode (Zero-Server Mode):**
-> If the local server (`localhost:9876`) is offline and you are auditing a public `https://` website, the extension automatically falls back to the **Google PageSpeed Insights REST API v5** (`https://www.googleapis.com/pagespeedonline/v5/runPagespeed`) so you can still run Desktop + Mobile audits and generate AI-Ready reports without starting the local server.
+### Step 3: Run Audits
+1. Open any tab (`http://localhost:*` or `https://*`) and click the **SiteLens AI** extension icon.
+2. **Speed & Core Web Vitals**: Select `⚡ Lighthouse Audit`, choose device mode (`Dual Run`, `Desktop`, or `Mobile`), and click **Run Dual Lighthouse Audit**.
+3. **Security Audit**: Switch to `🛡️ Security Scanner`, select crawl scope (`Full Site Crawl` or `Quick Page Scan`), select crawl depth (`5`, `10`, or `25` pages), and click **Run Security Audit**.
+4. View live speedometer scores, inspect category & impact cards, and click **Copy AI Prompt** to paste diagnostic fixes straight into your AI assistant!
 
 ---
 
-## 🎯 Step 3: Run a 1-Click Dual Audit & Auto-Download Reports
-
-1. Navigate to any website (`http://localhost:3000`, `http://127.0.0.1:5173`, or `https://example.com`) and click the **AutoLighthouse** extension icon.
-2. **Target URL:** The active tab's URL is automatically detected. You can also edit the URL field manually or click **Use Active Tab**.
-3. **Device Selection:**
-   - **Both (Auto-Sequence)** *(Default)*: Sequentially runs a clean Desktop audit (`1350×940` desktop config) followed by a clean Mobile audit (`Moto G4 / Slow 4G` config) in isolated headless Chrome instances (`--headless=new --no-sandbox --incognito --disable-extensions`).
-   - **Desktop Only** or **Mobile Only**: Runs a single form-factor audit.
-4. **Audit Categories:** Toggle **Performance**, **Accessibility**, **Best Practices**, and **SEO**.
-5. **Output Formats & Auto-Download:**
-   - **AI-Optimized Compact Report** (`<domain>-<timestamp>-combined-ai-report.json` & `.md`): Merges Desktop and Mobile scores, Core Web Vitals (`FCP`, `LCP`, `TBT`, `CLS`, `SI`, `TTI`), all failed audits (`score < 0.9`), top opportunities with wasted bytes/ms, exact failing DOM selectors/snippets, console errors, and CSP issues into a token-efficient file.
-   - **Full Lighthouse JSON** (`<domain>-<timestamp>-desktop.json` & `mobile.json`)
-   - **Full Lighthouse HTML Report** (`<domain>-<timestamp>-desktop.html` & `mobile.html`)
-   - **Auto-Download Toggle**: When enabled, reports are saved automatically to your `Downloads/lighthouse-reports/` folder as soon as the audit finishes.
-6. Click **Run Dual Lighthouse Audit**:
-   - Watch the live progress bar (`Step 1/2: Running Desktop Audit...` -> `Step 2/2: Running Mobile Audit...` -> `Completed!`).
-   - Inspect the side-by-side **Desktop vs. Mobile** circular score gauges (0–49 Red, 50–89 Orange, 90–100 Green) and Core Web Vitals right inside the popup.
-   - Click **📋 Copy AI Prompt + Report to Clipboard** to copy an AI engineering prompt along with the full Desktop + Mobile Markdown diagnostic report directly to your clipboard, ready to paste into Antigravity chat!
+## 📄 License
+MIT License. Built for developers and teams striving for fast, accessible, and secure web applications.

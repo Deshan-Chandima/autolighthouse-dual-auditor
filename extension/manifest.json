@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AutoLighthouse Dual Auditor (Desktop + Mobile)",
+  "name": "SiteLens AI - Speed & Security Auditor",
   "version": "1.2.0",
-  "description": "One-click Google Lighthouse Dual Auditor (Desktop + Mobile) & 6-Layer Website Security Scanner with AI-ready report auto-downloads.",
+  "description": "One-click Web Performance (Desktop + Mobile) & 6-Layer Security Scanner with AI-ready diagnostic reports.",
   "permissions": [
     "activeTab",
     "tabs",
@@ -22,7 +22,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "AutoLighthouse Dual Auditor (Desktop + Mobile)",
+    "default_title": "SiteLens AI - Speed & Security Auditor",
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",

@@ -1,5 +1,5 @@
 /**
- * 6-Layer Defensive Web Security Scanner for AutoLighthouse Dual Auditor
+ * 6-Layer Defensive Web Security Scanner for SiteLens AI
  * Performs non-intrusive security posture checks across a single URL or site-wide crawl:
  *  1. HTTP Security Headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COOP)
  *  2. Cookie & Session Security (HttpOnly, Secure, SameSite, __Secure-/__Host- prefixes)
@@ -119,7 +119,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 7000) {
       redirect: options.redirect || 'follow',
       signal: controller.signal,
       headers: {
-        'User-Agent': 'AutoLighthouse-SecurityAuditor/1.2 (+https://github.com/Deshan-Chandima/autolighthouse-dual-auditor)',
+        'User-Agent': 'SiteLens-AI-SecurityAuditor/1.2 (+https://github.com/Deshan-Chandima/autolighthouse-dual-auditor)',
         ...(options.headers || {})
       }
     });
@@ -1075,7 +1075,7 @@ export async function runSecurityAudit({
   };
 
   const result = {
-    schema: 'autolighthouse-security-report/v1',
+    schema: 'sitelens-security-report/v1',
     url: parsedUrl.href,
     origin,
     scanScope,

@@ -103,7 +103,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     status: 'online',
-    service: 'AutoLighthouse Dual Auditor Engine',
+    service: 'SiteLens AI Engine',
     port: PORT,
     activeAudit: activeAuditState
   });
@@ -195,7 +195,7 @@ app.post('/api/audit', async (req, res) => {
         statusText: `Running ${deviceTitle} Audit...`
       });
 
-      console.log(`[AutoLighthouse] Step ${stepNumber}/${totalSteps}: Running ${deviceTitle} Audit for ${targetUrl}...`);
+      console.log(`[SiteLens AI] Step ${stepNumber}/${totalSteps}: Running ${deviceTitle} Audit for ${targetUrl}...`);
 
       let chrome = null;
       try {
@@ -250,7 +250,7 @@ app.post('/api/audit', async (req, res) => {
           try {
             await chrome.kill();
           } catch (killErr) {
-            console.warn('[AutoLighthouse] Warning killing Chrome process:', killErr?.message);
+            console.warn('[SiteLens AI] Warning killing Chrome process:', killErr?.message);
           }
         }
       }
@@ -271,7 +271,7 @@ app.post('/api/audit', async (req, res) => {
       statusText: 'Completed'
     });
 
-    console.log(`[AutoLighthouse] Completed audit for ${targetUrl}`);
+    console.log(`[SiteLens AI] Completed audit for ${targetUrl}`);
 
     const finalPayload = {
       ok: true,
@@ -296,7 +296,7 @@ app.post('/api/audit', async (req, res) => {
       res.json(finalPayload);
     }
   } catch (error) {
-    console.error('[AutoLighthouse] Audit failed:', error);
+    console.error('[SiteLens AI] Audit failed:', error);
     updateState({
       running: false,
       statusText: `Error: ${error.message || 'Audit failed'}`
@@ -362,7 +362,7 @@ app.post('/api/security-audit', async (req, res) => {
   };
 
   try {
-    console.log(`[AutoLighthouse Security] Starting ${scanScope} security audit for ${targetUrl}...`);
+    console.log(`[SiteLens AI Security] Starting ${scanScope} security audit for ${targetUrl}...`);
     const resultPayload = await runSecurityAudit({
       url: targetUrl,
       scanScope,
@@ -376,7 +376,7 @@ app.post('/api/security-audit', async (req, res) => {
       statusText: 'Security Audit Completed'
     });
 
-    console.log(`[AutoLighthouse Security] Completed security audit for ${targetUrl} (Score: ${resultPayload.securityReport.json.overallScore}/100, Grade: ${resultPayload.securityReport.json.grade})`);
+    console.log(`[SiteLens AI Security] Completed security audit for ${targetUrl} (Score: ${resultPayload.securityReport.json.overallScore}/100, Grade: ${resultPayload.securityReport.json.grade})`);
 
     if (wantStream) {
       res.write(JSON.stringify(resultPayload) + '\n');
@@ -385,7 +385,7 @@ app.post('/api/security-audit', async (req, res) => {
       res.json(resultPayload);
     }
   } catch (error) {
-    console.error('[AutoLighthouse Security] Security audit failed:', error);
+    console.error('[SiteLens AI Security] Security audit failed:', error);
     updateState({
       running: false,
       statusText: `Error: ${error.message || 'Security scan failed'}`
@@ -410,7 +410,7 @@ app.post('/api/security-audit', async (req, res) => {
 
 app.listen(PORT, '127.0.0.1', () => {
   console.log('==============================================================');
-  console.log(' 🚀 AutoLighthouse Dual Auditor Engine is ONLINE');
+  console.log(' 🚀 SiteLens AI Engine is ONLINE');
   console.log(` 🌐 Listening at: http://localhost:${PORT}`);
   console.log(` 🩺 Health Check: http://localhost:${PORT}/api/health`);
   console.log(` ⚡ Audit API:    POST http://localhost:${PORT}/api/audit`);

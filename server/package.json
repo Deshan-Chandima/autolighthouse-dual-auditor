@@ -1,7 +1,7 @@
 {
-  "name": "autolighthouse-local-server",
+  "name": "sitelens-ai-server",
   "version": "1.2.0",
-  "description": "Local Node.js Lighthouse Runner backend for AutoLighthouse Dual Auditor (Desktop + Mobile)",
+  "description": "Local Node.js Engine for SiteLens AI - Web Performance, SEO & 6-Layer Security Suite",
   "type": "module",
   "main": "server.js",
   "scripts": {
