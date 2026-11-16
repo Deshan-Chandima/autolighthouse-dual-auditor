@@ -119,7 +119,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 7000) {
       redirect: options.redirect || 'follow',
       signal: controller.signal,
       headers: {
-        'User-Agent': 'SiteLens-AI-SecurityAuditor/1.2 (+https://github.com/Deshan-Chandima/autolighthouse-dual-auditor)',
+        'User-Agent': 'SiteLens-AI-SecurityAuditor/1.2 (+https://github.com/Deshan-Chandima/sitelens-ai)',
         ...(options.headers || {})
       }
     });
