@@ -1,9 +1,9 @@
 @echo off
-title AutoLighthouse Dual Auditor - Local Engine (localhost:9876)
+title SiteLens AI - Local Engine (localhost:9876)
 color 0B
 echo ==============================================================
-echo   AutoLighthouse Dual Auditor (Desktop + Mobile)
-echo   Starting Local Node.js Lighthouse Engine on port 9876...
+echo   SiteLens AI (Speed, SEO & 6-Layer Security Engine)
+echo   Starting Local Node.js Engine on port 9876...
 echo ==============================================================
 echo.
 

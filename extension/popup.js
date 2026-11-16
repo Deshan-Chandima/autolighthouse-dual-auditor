@@ -1,5 +1,5 @@
 /**
- * AutoLighthouse Dual Auditor (Desktop + Mobile) - Popup Controller
+ * SiteLens AI - Speed & Security Suite - Popup Controller
  */
 
 const LOCAL_SERVER_URL = 'http://localhost:9876';
@@ -897,7 +897,7 @@ async function runViaPageSpeedFallback({ url, devices, categories, formats }) {
   }
 
   const combinedAiJson = {
-    schema: 'autolighthouse-ai-report/v1',
+    schema: 'sitelens-ai-report/v1',
     url,
     generatedAt: timestamp,
     source: 'pagespeed-insights-fallback',
@@ -1917,7 +1917,7 @@ async function runBrowserSecurityFallback({ url, scanScope, maxPages, modules })
     overallScore >= 95 ? 'A+' : overallScore >= 88 ? 'A' : overallScore >= 80 ? 'B' : overallScore >= 68 ? 'C' : overallScore >= 50 ? 'D' : 'F';
 
   const reportJson = {
-    schema: 'autolighthouse-security-report/v1',
+    schema: 'sitelens-security-report/v1',
     url: parsedUrl.href,
     origin,
     scanScope,

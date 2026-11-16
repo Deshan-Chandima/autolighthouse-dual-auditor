@@ -1,5 +1,5 @@
 /**
- * AutoLighthouse Dual Auditor - Manifest V3 Background Service Worker
+ * SiteLens AI - Manifest V3 Background Service Worker
  * Handles default settings initialization, badge status updates, and reliable file downloads.
  */
 
