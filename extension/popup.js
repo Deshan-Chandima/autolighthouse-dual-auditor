@@ -24,6 +24,7 @@ const CORE_METRICS = [
 const DEFAULT_SETTINGS = {
   activeModeTab: 'lighthouse', // 'lighthouse' | 'security'
   deviceMode: 'both', // 'both' | 'desktop' | 'mobile'
+  throttlingMethod: 'simulate', // 'simulate' (DevTools Incognito 1:1) | 'devtools' (Applied Packet Throttling)
   categories: {
     performance: true,
     accessibility: true,
@@ -80,6 +81,10 @@ const els = {
   fmtAiSummary: document.getElementById('fmtAiSummary'),
   fmtJson: document.getElementById('fmtJson'),
   fmtHtml: document.getElementById('fmtHtml'),
+  throttleSimulate: document.getElementById('throttleSimulate'),
+  throttleDevtools: document.getElementById('throttleDevtools'),
+  throttleSimulateLabel: document.getElementById('throttleSimulateLabel'),
+  throttleDevtoolsLabel: document.getElementById('throttleDevtoolsLabel'),
   runAuditBtn: document.getElementById('runAuditBtn'),
   runAuditBtnText: document.getElementById('runAuditBtnText'),
   progressSection: document.getElementById('progressSection'),
@@ -92,6 +97,7 @@ const els = {
   dashboardSection: document.getElementById('dashboardSection'),
   dashboardMeta: document.getElementById('dashboardMeta'),
   dashboardSourceBadge: document.getElementById('dashboardSourceBadge'),
+  dashboardEngineBadge: document.getElementById('dashboardEngineBadge'),
   comparisonColumns: document.getElementById('comparisonColumns'),
   desktopScoreCol: document.getElementById('desktopScoreCol'),
   mobileScoreCol: document.getElementById('mobileScoreCol'),
@@ -270,8 +276,25 @@ function applySettingsToUI() {
   if (els.secModDom) els.secModDom.checked = Boolean(currentSettings.secModules.dom);
   if (els.secModCors) els.secModCors.checked = Boolean(currentSettings.secModules.cors);
 
+  // Engine Calibration UI
+  setThrottlingModeUI(currentSettings.throttlingMethod || 'simulate');
+
   updateRunButtonLabel();
   updateSecurityButtonLabel();
+}
+
+function setThrottlingModeUI(method) {
+  const norm = method === 'devtools' ? 'devtools' : 'simulate';
+  currentSettings.throttlingMethod = norm;
+  if (els.throttleSimulate) els.throttleSimulate.checked = norm === 'simulate';
+  if (els.throttleDevtools) els.throttleDevtools.checked = norm === 'devtools';
+
+  if (els.throttleSimulateLabel) {
+    els.throttleSimulateLabel.classList.toggle('active', norm === 'simulate');
+  }
+  if (els.throttleDevtoolsLabel) {
+    els.throttleDevtoolsLabel.classList.toggle('active', norm === 'devtools');
+  }
 }
 
 function setDeviceModeUI(mode) {
@@ -434,6 +457,20 @@ function bindEvents() {
   els.fmtAiSummary.addEventListener('change', onFormatChange);
   els.fmtJson.addEventListener('change', onFormatChange);
   els.fmtHtml.addEventListener('change', onFormatChange);
+
+  // Engine Calibration Mode (DevTools 1:1 vs Applied)
+  if (els.throttleSimulate) {
+    els.throttleSimulate.addEventListener('change', () => {
+      setThrottlingModeUI('simulate');
+      saveSettings();
+    });
+  }
+  if (els.throttleDevtools) {
+    els.throttleDevtools.addEventListener('change', () => {
+      setThrottlingModeUI('devtools');
+      saveSettings();
+    });
+  }
 
   // Run Audit Button
   els.runAuditBtn.addEventListener('click', () => {
@@ -792,6 +829,7 @@ async function runViaLocalServer({ url, devices, categories, formats }) {
       devices,
       categories,
       formats,
+      throttlingMethod: currentSettings.throttlingMethod || 'simulate',
       stream: true
     })
   });
@@ -1499,6 +1537,18 @@ function renderDashboard(payload) {
     els.dashboardSourceBadge.textContent =
       payload.source === 'psi-fallback' ? 'PSI Cloud Fallback' : 'Local Lighthouse';
   }
+  if (els.dashboardEngineBadge) {
+    if (payload.source === 'psi-fallback') {
+      els.dashboardEngineBadge.textContent = '☁️ PSI API';
+      els.dashboardEngineBadge.title = 'Audited via Google PageSpeed Insights Cloud API';
+    } else if (payload.throttlingMethod === 'devtools') {
+      els.dashboardEngineBadge.textContent = '🌐 Applied (Real 4G)';
+      els.dashboardEngineBadge.title = 'Applied Packet Throttling';
+    } else {
+      els.dashboardEngineBadge.textContent = '🎯 DevTools 1:1';
+      els.dashboardEngineBadge.title = 'Simulated Throttling matching Chrome DevTools Incognito exactly';
+    }
+  }
 
   updateDashboardView();
 }
@@ -1518,6 +1568,7 @@ async function saveLightweightAuditCache(payload) {
     const slimPayload = {
       ok: true,
       source: payload.source,
+      throttlingMethod: payload.throttlingMethod || 'simulate',
       url: payload.url,
       timestamp: payload.timestamp,
       devices: payload.devices,

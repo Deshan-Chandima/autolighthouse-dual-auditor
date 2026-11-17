@@ -417,6 +417,82 @@ body::-webkit-scrollbar-thumb {
   border-color: var(--border-hover);
 }
 
+/* Engine Mode Calibration */
+.engine-mode-group {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border-light);
+}
+
+.engine-mode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.engine-mode-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.engine-mode-pill {
+  font-size: 10px;
+  font-weight: 600;
+  color: #0284c7;
+  background: #e0f2fe;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+}
+
+.engine-mode-segmented {
+  display: flex;
+  gap: 6px;
+}
+
+.engine-mode-chip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.engine-mode-chip input[type='radio'] {
+  display: none;
+}
+
+.engine-mode-chip:hover {
+  background: #ffffff;
+  border-color: var(--border-hover);
+}
+
+.engine-mode-chip.active {
+  background: #ffffff;
+  border-color: var(--btn-dark);
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+
+.engine-badge {
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
+}
+
 /* Switch Slider */
 .switch-wrap {
   display: inline-flex;
