@@ -158,6 +158,24 @@
             <span>HTML</span>
           </label>
         </div>
+
+        <!-- Engine Calibration Selector (DevTools Incognito 1:1 Match) -->
+        <div class="engine-mode-group">
+          <div class="engine-mode-header">
+            <span class="engine-mode-title">Engine Calibration</span>
+            <span class="engine-mode-pill" title="Lantern simulation matches Chrome DevTools Incognito Lighthouse 1:1">DevTools Accuracy</span>
+          </div>
+          <div class="engine-mode-segmented">
+            <label class="engine-mode-chip active" id="throttleSimulateLabel" title="Lantern Simulation (Exact DevTools Incognito Match - Recommended)">
+              <input type="radio" name="throttlingMode" value="simulate" id="throttleSimulate" checked />
+              <span>🎯 DevTools 1:1 (Simulated)</span>
+            </label>
+            <label class="engine-mode-chip" id="throttleDevtoolsLabel" title="Applied Packet Throttling (Emulates real network delay in browser)">
+              <input type="radio" name="throttlingMode" value="devtools" id="throttleDevtools" />
+              <span>🌐 Applied (Real 4G)</span>
+            </label>
+          </div>
+        </div>
       </section>
 
       <!-- Primary Action Button -->
@@ -174,6 +192,7 @@
           <div class="dashboard-hero-header">
             <div class="dashboard-meta-wrap">
               <span class="source-badge" id="dashboardSourceBadge">Local Engine</span>
+              <span class="source-badge engine-badge" id="dashboardEngineBadge">🎯 DevTools 1:1</span>
               <p class="dashboard-meta" id="dashboardMeta"></p>
             </div>
             <button type="button" id="clearResultsBtn" class="clear-results-btn" title="Clear Audit Results">

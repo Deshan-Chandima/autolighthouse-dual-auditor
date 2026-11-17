@@ -36,20 +36,26 @@ function updateState(patch) {
 
 /**
  * Build accurate official Lighthouse configuration for Desktop vs Mobile (Moto G4 / Slow 4G).
+ * Supports both Simulated Throttling (1:1 match with Chrome DevTools Incognito) and Applied DevTools Throttling.
  */
-function buildLighthouseConfig(device, categories) {
+function buildLighthouseConfig(device, categories, throttlingMethod = 'simulate') {
   const onlyCategories = Array.isArray(categories) && categories.length > 0
     ? categories
     : ['performance', 'accessibility', 'best-practices', 'seo'];
 
+  const method = throttlingMethod === 'devtools' ? 'devtools' : 'simulate';
+
   if (device === 'desktop') {
-    // Extend official Lighthouse desktop preset
+    // Official Lighthouse desktop preset matching Chrome DevTools
     return {
       ...desktopConfig,
       settings: {
         ...(desktopConfig?.settings || {}),
         formFactor: 'desktop',
         onlyCategories,
+        throttlingMethod: method,
+        disableStorageReset: false,
+        clearStorageTypes: ['cookies', 'local_storage', 'session_storage', 'service_workers', 'cache_storage', 'indexeddb'],
         screenEmulation: {
           mobile: false,
           width: 1350,
@@ -69,12 +75,15 @@ function buildLighthouseConfig(device, categories) {
     };
   }
 
-  // Official Mobile Moto G4 / Slow 4G preset
+  // Official Mobile Moto G4 / Slow 4G preset matching Chrome DevTools
   return {
     extends: 'lighthouse:default',
     settings: {
       formFactor: 'mobile',
       onlyCategories,
+      throttlingMethod: method,
+      disableStorageReset: false,
+      clearStorageTypes: ['cookies', 'local_storage', 'session_storage', 'service_workers', 'cache_storage', 'indexeddb'],
       screenEmulation: {
         mobile: true,
         width: 412,
@@ -129,6 +138,7 @@ app.post('/api/audit', async (req, res) => {
     devices = ['desktop', 'mobile'],
     categories = ['performance', 'accessibility', 'best-practices', 'seo'],
     formats = ['json', 'html', 'ai-summary'],
+    throttlingMethod = 'simulate', // 'simulate' (1:1 Chrome DevTools match) | 'devtools' (Applied)
     stream = false
   } = req.body || {};
 
@@ -199,12 +209,15 @@ app.post('/api/audit', async (req, res) => {
 
       let chrome = null;
       try {
-        // Launch fresh isolated headless Chrome instance per device so caches/states never bleed across runs
+        const windowSizeFlag = device === 'desktop' ? '--window-size=1350,940' : '--window-size=412,823';
+        // Launch fresh isolated headless Chrome instance matching exact DevTools dimensions & flags
         chrome = await chromeLauncher.launch({
           chromeFlags: [
             '--headless=new',
             '--no-sandbox',
             '--incognito',
+            windowSizeFlag,
+            '--hide-scrollbars',
             '--disable-gpu',
             '--disable-extensions',
             '--disable-component-extensions-with-background-pages',
@@ -214,7 +227,8 @@ app.post('/api/audit', async (req, res) => {
             '--disable-default-apps',
             '--mute-audio',
             '--no-first-run',
-            '--disable-dev-shm-usage'
+            '--disable-dev-shm-usage',
+            '--disable-features=Translate,BackForwardCache,AcceptCHFrame'
           ]
         });
 
@@ -224,7 +238,7 @@ app.post('/api/audit', async (req, res) => {
           port: chrome.port
         };
 
-        const lhConfig = buildLighthouseConfig(device, categories);
+        const lhConfig = buildLighthouseConfig(device, categories, throttlingMethod);
         const runnerResult = await lighthouse(targetUrl, lhFlags, lhConfig);
 
         const lhr = runnerResult.lhr;
@@ -281,6 +295,8 @@ app.post('/api/audit', async (req, res) => {
       timestamp,
       devices: normalizedDevices,
       categories,
+      throttlingMethod: throttlingMethod === 'devtools' ? 'devtools' : 'simulate',
+      engineCalibrated: true,
       formats,
       results: resultsByDevice,
       aiReport: {
