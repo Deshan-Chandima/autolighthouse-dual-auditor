@@ -9,7 +9,8 @@
     "storage",
     "downloads",
     "clipboardWrite",
-    "declarativeNetRequest"
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback"
   ],
   "host_permissions": [
     "http://localhost:9876/*",
@@ -17,6 +18,15 @@
     "https://www.googleapis.com/*",
     "<all_urls>"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

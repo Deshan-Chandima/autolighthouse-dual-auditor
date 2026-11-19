@@ -238,7 +238,6 @@ function renderDeviceGrid() {
     iframe.src = currentUrl;
     iframe.title = `${dev.name} Viewport`;
     iframe.loading = 'lazy';
-    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals');
 
     screenScaled.appendChild(iframe);
     screenOuter.appendChild(screenScaled);

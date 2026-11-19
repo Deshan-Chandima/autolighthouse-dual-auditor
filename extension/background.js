@@ -38,31 +38,15 @@ chrome.runtime.onStartup.addListener(async () => {
  */
 async function setupResponsiveIframeRules() {
   if (!chrome.declarativeNetRequest) return;
-  const RULE_ID = 2001;
   try {
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: [RULE_ID],
-      addRules: [
-        {
-          id: RULE_ID,
-          priority: 1,
-          action: {
-            type: 'modifyHeaders',
-            responseHeaders: [
-              { header: 'x-frame-options', operation: 'remove' },
-              { header: 'frame-options', operation: 'remove' },
-              { header: 'content-security-policy', operation: 'remove' }
-            ]
-          },
-          condition: {
-            initiatorDomains: [chrome.runtime.id],
-            resourceTypes: ['sub_frame']
-          }
-        }
-      ]
-    });
+    // Clear any previous dynamic rules so the static ruleset in rules.json takes clean priority
+    const currentRules = await chrome.declarativeNetRequest.getDynamicRules();
+    const ruleIds = currentRules.map((r) => r.id);
+    if (ruleIds.length > 0) {
+      await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ruleIds });
+    }
   } catch (err) {
-    console.warn('[SiteLens AI] Could not configure iframe headers:', err);
+    console.warn('[SiteLens AI] Dynamic rules cleanup notice:', err);
   }
 }
 
