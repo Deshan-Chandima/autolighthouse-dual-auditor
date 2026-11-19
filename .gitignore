@@ -25,6 +25,10 @@ lighthouse-reports/
 *.security.json
 *.security.md
 
+# Chrome extension generated files
+_metadata/
+extension/_metadata/
+
 # OS / Editor files
 .DS_Store
 Thumbs.db
