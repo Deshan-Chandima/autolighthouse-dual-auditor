@@ -55,6 +55,10 @@
 
         <!-- Action Buttons -->
         <div class="action-buttons">
+          <button type="button" id="btnManageDevices" class="action-btn" title="Add, edit, remove or reset device presets">
+            <span class="action-icon">⚙️</span>
+            <span class="btn-text">Devices</span>
+          </button>
           <button type="button" id="btnRotateAll" class="action-btn" title="Rotate all Mobile/Tablet devices (Portrait ↔ Landscape)">
             <span class="action-icon">🔄</span>
             <span class="btn-text">Rotate All</span>
@@ -104,6 +108,71 @@
         <div class="empty-icon">📱</div>
         <h2>Enter a URL to Start Live Responsive Testing</h2>
         <p>Preview and interact with your website side-by-side across mobile phones, tablets, and desktop resolutions.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Device Presets Manager Modal -->
+  <div class="modal-overlay hidden" id="deviceModalOverlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon">⚙️</span>
+          <div>
+            <h2 class="modal-title">Device Presets Manager</h2>
+            <p class="modal-sub">Add custom devices, edit dimensions, remove viewports or restore default presets.</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" id="modalCloseBtn" title="Close modal">&times;</button>
+      </div>
+
+      <!-- Modal Toolbar -->
+      <div class="modal-toolbar">
+        <button type="button" id="btnOpenAddForm" class="btn-primary-sm">
+          <span>+ Add New Device</span>
+        </button>
+        <button type="button" id="btnResetDefaults" class="btn-secondary-sm danger-text" title="Restore original 7 default device presets">
+          <span>↺ Reset to Defaults</span>
+        </button>
+      </div>
+
+      <!-- Add / Edit Device Form (Collapsible) -->
+      <div class="device-form-wrap hidden" id="deviceFormWrap">
+        <h3 class="form-title" id="formTitle">Add New Device</h3>
+        <form id="deviceForm">
+          <input type="hidden" id="editDeviceId" value="" />
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="inputDevName">Device Name</label>
+              <input type="text" id="inputDevName" placeholder="e.g. Galaxy S24 Ultra" required autocomplete="off" />
+            </div>
+            <div class="form-field">
+              <label for="selectDevType">Category</label>
+              <select id="selectDevType" required>
+                <option value="mobile">📱 Mobile</option>
+                <option value="tablet">📟 Tablet</option>
+                <option value="desktop">🖥️ Desktop</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="inputDevWidth">Width (px)</label>
+              <input type="number" id="inputDevWidth" min="240" max="3840" placeholder="e.g. 412" required />
+            </div>
+            <div class="form-field">
+              <label for="inputDevHeight">Height (px)</label>
+              <input type="number" id="inputDevHeight" min="240" max="3840" placeholder="e.g. 915" required />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary-sm" id="btnSaveDevice">Save Device</button>
+            <button type="button" class="btn-secondary-sm" id="btnCancelForm">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- List of Active Devices in Presets -->
+      <div class="modal-device-list" id="modalDeviceList">
+        <!-- Dynamically populated via responsive-matrix.js -->
       </div>
     </div>
   </div>
