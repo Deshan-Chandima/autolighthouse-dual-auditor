@@ -25,13 +25,16 @@
       </div>
     </header>
 
-    <!-- Primary Mode Switcher: Lighthouse vs Security Scanner -->
+    <!-- Primary Mode Switcher: Lighthouse vs Security vs Responsive -->
     <nav class="mode-tab-bar" role="tablist" aria-label="Audit Mode">
       <button type="button" class="mode-tab-btn active" id="tabBtnLighthouse" role="tab" aria-selected="true">
-        <span>⚡ Lighthouse Audit</span>
+        <span>⚡ Lighthouse</span>
       </button>
       <button type="button" class="mode-tab-btn" id="tabBtnSecurity" role="tab" aria-selected="false">
-        <span>🛡️ Security Scanner</span>
+        <span>🛡️ Security</span>
+      </button>
+      <button type="button" class="mode-tab-btn" id="tabBtnResponsive" role="tab" aria-selected="false">
+        <span>📱 Responsive</span>
         <span class="mode-new-badge">NEW</span>
       </button>
     </nav>
@@ -475,6 +478,100 @@
           </div>
         </div>
       </section>
+    </div>
+
+    <!-- ======================================================================
+         TAB 3: RESPONSIVE MATRIX LAUNCHER PANEL
+         ====================================================================== -->
+    <div id="responsiveTabPanel" class="tab-panel hidden">
+      <!-- Responsive Matrix Info Card -->
+      <section class="card config-card">
+        <div class="section-header">
+          <span class="section-label">Multi-Device Live Grid</span>
+          <span class="section-hint">Instant Side-by-Side Frames</span>
+        </div>
+
+        <p class="sec-desc">
+          Preview and test layout responsiveness, horizontal overflows, and breakpoint rendering live across standard mobile, tablet, and desktop devices simultaneously in a full-screen studio view.
+        </p>
+
+        <!-- Device Coverage Grid Badges -->
+        <div class="responsive-presets-grid">
+          <div class="res-preset-badge">
+            <span class="res-icon">📱</span>
+            <div class="res-info">
+              <span class="res-name">iPhone SE</span>
+              <span class="res-res">375 × 667</span>
+            </div>
+          </div>
+          <div class="res-preset-badge">
+            <span class="res-icon">📱</span>
+            <div class="res-info">
+              <span class="res-name">iPhone 15</span>
+              <span class="res-res">390 × 844</span>
+            </div>
+          </div>
+          <div class="res-preset-badge">
+            <span class="res-icon">📱</span>
+            <div class="res-info">
+              <span class="res-name">Pixel 7</span>
+              <span class="res-res">412 × 915</span>
+            </div>
+          </div>
+          <div class="res-preset-badge">
+            <span class="res-icon">📟</span>
+            <div class="res-info">
+              <span class="res-name">iPad Mini</span>
+              <span class="res-res">768 × 1024</span>
+            </div>
+          </div>
+          <div class="res-preset-badge">
+            <span class="res-icon">📟</span>
+            <div class="res-info">
+              <span class="res-name">iPad Pro 11"</span>
+              <span class="res-res">1024 × 768</span>
+            </div>
+          </div>
+          <div class="res-preset-badge">
+            <span class="res-icon">💻</span>
+            <div class="res-info">
+              <span class="res-name">Laptop 13"</span>
+              <span class="res-res">1280 × 800</span>
+            </div>
+          </div>
+          <div class="res-preset-badge">
+            <span class="res-icon">🖥️</span>
+            <div class="res-info">
+              <span class="res-name">Desktop</span>
+              <span class="res-res">1440 × 900</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Highlights feature list -->
+        <div class="res-feature-list">
+          <div class="res-feature-item">
+            <span class="res-feat-icon">⚡</span>
+            <span>Real-time Interactive Live Scrolling &amp; Testing</span>
+          </div>
+          <div class="res-feature-item">
+            <span class="res-feat-icon">🔄</span>
+            <span>1-Click Orientation Swap (Portrait ↔ Landscape)</span>
+          </div>
+          <div class="res-feature-item">
+            <span class="res-feat-icon">🛡️</span>
+            <span>Automatic X-Frame-Options &amp; CSP header bypass</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Primary Action Button -->
+      <div class="action-bar">
+        <button type="button" id="launchMatrixBtn" class="primary-btn launch-matrix-btn">
+          <span class="btn-icon">🚀</span>
+          <span>Launch Multi-Device Live Matrix</span>
+        </button>
+      </div>
     </div>
   </div>
 

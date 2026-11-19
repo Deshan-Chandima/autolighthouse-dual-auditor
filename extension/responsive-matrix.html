@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SiteLens AI — Multi-Device Live Responsive Matrix</title>
+  <link rel="icon" type="image/png" href="icon32.png" />
+  <link rel="stylesheet" href="responsive-matrix.css" />
+</head>
+<body class="theme-dark">
+  <div class="matrix-app">
+    <!-- Top Studio Navigation Bar -->
+    <header class="matrix-header">
+      <div class="header-left">
+        <div class="brand">
+          <img src="icon48.png" alt="SiteLens AI" class="brand-logo" />
+          <div class="brand-info">
+            <h1 class="brand-title">SiteLens AI</h1>
+            <span class="brand-subtitle">Live Responsive Matrix</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <form id="urlForm" class="url-bar-form">
+          <div class="url-input-wrap">
+            <span class="url-prefix-icon">🌐</span>
+            <input
+              type="url"
+              id="targetUrlInput"
+              class="url-input"
+              placeholder="Enter website URL (e.g. https://example.com or http://localhost:3000)..."
+              required
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button type="submit" class="btn-navigate" title="Navigate all devices">
+              <span>Go</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="header-right">
+        <!-- Zoom / Scale Controls -->
+        <div class="control-group">
+          <span class="control-label">Scale:</span>
+          <div class="segmented-control" id="scaleControl">
+            <button type="button" class="seg-btn" data-scale="auto">Fit</button>
+            <button type="button" class="seg-btn" data-scale="0.5">50%</button>
+            <button type="button" class="seg-btn active" data-scale="0.75">75%</button>
+            <button type="button" class="seg-btn" data-scale="1.0">100%</button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button type="button" id="btnRotateAll" class="action-btn" title="Rotate all Mobile/Tablet devices (Portrait ↔ Landscape)">
+            <span class="action-icon">🔄</span>
+            <span class="btn-text">Rotate All</span>
+          </button>
+          <button type="button" id="btnReloadAll" class="action-btn" title="Reload all device frames">
+            <span class="action-icon">↺</span>
+            <span class="btn-text">Reload</span>
+          </button>
+          <button type="button" id="btnThemeToggle" class="action-btn icon-only" title="Toggle Studio Theme (Dark / Light)">
+            <span class="action-icon" id="themeIcon">☀️</span>
+          </button>
+          <a id="btnOpenExternal" href="#" target="_blank" rel="noopener noreferrer" class="action-btn icon-only" title="Open Target Site in New Tab">
+            <span class="action-icon">↗</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Filter & Statistics Bar -->
+    <div class="sub-bar">
+      <div class="sub-bar-left">
+        <span class="filter-title">Filter Devices:</span>
+        <div class="filter-pills" id="filterPills">
+          <button type="button" class="filter-pill active" data-filter="all">All Devices (<span id="countAll">7</span>)</button>
+          <button type="button" class="filter-pill" data-filter="mobile">📱 Mobile (<span id="countMobile">3</span>)</button>
+          <button type="button" class="filter-pill" data-filter="tablet">📟 Tablet (<span id="countTablet">2</span>)</button>
+          <button type="button" class="filter-pill" data-filter="desktop">🖥️ Desktop (<span id="countDesktop">2</span>)</button>
+        </div>
+      </div>
+      <div class="sub-bar-right">
+        <span class="live-url-indicator">
+          Auditing: <strong id="currentUrlDisplay">https://example.com</strong>
+        </span>
+      </div>
+    </div>
+
+    <!-- Main Live Device Matrix Canvas -->
+    <main class="matrix-canvas" id="matrixCanvas">
+      <div class="device-grid" id="deviceGrid">
+        <!-- Dynamically rendered via responsive-matrix.js -->
+      </div>
+    </main>
+
+    <!-- Empty State / Welcome Screen -->
+    <div class="empty-state hidden" id="emptyState">
+      <div class="empty-card">
+        <div class="empty-icon">📱</div>
+        <h2>Enter a URL to Start Live Responsive Testing</h2>
+        <p>Preview and interact with your website side-by-side across mobile phones, tablets, and desktop resolutions.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="responsive-matrix.js"></script>
+</body>
+</html>
