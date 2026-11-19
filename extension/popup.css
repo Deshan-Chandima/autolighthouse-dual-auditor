@@ -1223,30 +1223,31 @@ body::-webkit-scrollbar-thumb {
 }
 
 /* ==========================================================================
-   Main Mode Switcher (Lighthouse vs Security Scanner)
+   Main Mode Switcher (Lighthouse vs Security Scanner vs Responsive Matrix)
    ========================================================================== */
 .mode-tab-bar {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   background: #e2e8f0;
-  padding: 4px;
+  padding: 3px;
   border-radius: var(--radius-xl);
-  gap: 4px;
+  gap: 3px;
 }
 
 .mode-tab-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 4px;
+  padding: 7px 4px;
   border: none;
   border-radius: var(--radius-lg);
   background: transparent;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1274,6 +1275,79 @@ body::-webkit-scrollbar-thumb {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* ==========================================================================
+   Responsive Matrix Tab Specific Styles
+   ========================================================================== */
+.responsive-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.res-preset-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 6px 8px;
+}
+
+.res-icon {
+  font-size: 14px;
+}
+
+.res-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.res-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.res-res {
+  font-size: 10px;
+  font-family: ui-monospace, monospace;
+  color: var(--text-muted);
+}
+
+.res-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border-light);
+}
+
+.res-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.res-feat-icon {
+  font-size: 12px;
+}
+
+.launch-matrix-btn {
+  background: linear-gradient(135deg, #0284c7 0%, #4338ca 100%) !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+}
+
+.launch-matrix-btn:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
 }
 
 /* ==========================================================================

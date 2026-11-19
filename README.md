@@ -21,7 +21,21 @@ A modern, production-ready **Chrome Extension (Manifest V3)** and lightweight **
 - **🌐 CORS & Information Disclosure**: Detects overly permissive wildcard CORS (`Access-Control-Allow-Origin: *`) with credentials, and server version leakage via `Server` and `X-Powered-By` headers.
 - **🌐 Site-Wide Crawler**: Choose between **Quick Page Scan** or **Full Site Crawl** across **5, 10 (default), or 25 internal pages**.
 
-### 🤖 3. AI-Optimized Diagnostics & 1-Click Clipboard Prompts
+### 📱 3. Multi-Device Live Responsive Matrix
+- **Side-by-Side Screen Grid**: Tests real-time layout responsiveness, horizontal overflows, and CSS breakpoint behavior simultaneously across 7 standard viewports:
+  - 📱 **Mobile Small**: iPhone SE (375 × 667 px)
+  - 📱 **Mobile Standard**: iPhone 14 / 15 / 16 (390 × 844 px)
+  - 📱 **Android Modern**: Google Pixel 7 / Galaxy S23 (412 × 915 px)
+  - 📟 **Tablet Portrait**: iPad Mini / 10.2" (768 × 1024 px)
+  - 📟 **Tablet Landscape**: iPad Pro 11" (1024 × 768 px)
+  - 💻 **Laptop**: MacBook Air / 13" Laptop (1280 × 800 px)
+  - 🖥️ **Desktop**: Standard 1080p Desktop (1440 × 900 px)
+- **1-Click Orientation Swap**: Rotate individual devices or all mobile/tablets between Portrait ↔ Landscape.
+- **Dynamic Viewport Scaling**: Switch between `Fit`, `50%`, `75%`, and `100%` scale for seamless viewing on any screen.
+- **Automatic Iframe Unblocking**: Built-in declarative header processing automatically bypasses `X-Frame-Options` and `CSP frame-ancestors` exclusively within the studio tab, enabling live testing of any website.
+- **Dark / Light Studio Mode**: Switch between sleek midnight studio and crisp light presentation themes.
+
+### 🤖 4. AI-Optimized Diagnostics & 1-Click Clipboard Prompts
 - **Token-Efficient Reports**: Strips megabytes of trace bloat, preserving exact failing DOM selectors, snippets, wasted milliseconds/bytes, console errors, and security issues.
 - **📋 Copy AI Fix Prompt**: One click copies a structured engineering prompt + Markdown diagnostic report directly to your clipboard, ready to paste into Antigravity, Claude, ChatGPT, or Cursor for instant code patches.
 - **Auto-Download**: Automatically saves `.ai.md`, `.ai.json`, `.security.md`, and `.security.json` to your `Downloads/lighthouse-reports/` folder.

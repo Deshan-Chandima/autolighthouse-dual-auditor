@@ -1,0 +1,713 @@
+/**
+ * SiteLens AI - Multi-Device Live Responsive Matrix Controller
+ * Supports adding custom devices, editing dimensions, deleting devices, and resetting to defaults.
+ */
+
+const DEFAULT_DEVICE_PRESETS = [
+  {
+    id: 'iphone-se',
+    name: 'iPhone SE (3rd Gen)',
+    type: 'mobile',
+    category: 'Mobile Small',
+    width: 375,
+    height: 667,
+    icon: '📱',
+    scalePreset: 0.8
+  },
+  {
+    id: 'iphone-15',
+    name: 'iPhone 14 / 15 / 16',
+    type: 'mobile',
+    category: 'Mobile Standard',
+    width: 390,
+    height: 844,
+    icon: '📱',
+    scalePreset: 0.75
+  },
+  {
+    id: 'pixel-7',
+    name: 'Pixel 7 / Galaxy S23',
+    type: 'mobile',
+    category: 'Android Flagship',
+    width: 412,
+    height: 915,
+    icon: '📱',
+    scalePreset: 0.7
+  },
+  {
+    id: 'ipad-mini',
+    name: 'iPad Mini / 10.2"',
+    type: 'tablet',
+    category: 'Tablet Portrait',
+    width: 768,
+    height: 1024,
+    icon: '📟',
+    scalePreset: 0.6
+  },
+  {
+    id: 'ipad-pro',
+    name: 'iPad Pro 11"',
+    type: 'tablet',
+    category: 'Tablet Landscape',
+    width: 1024,
+    height: 768,
+    icon: '📟',
+    scalePreset: 0.55
+  },
+  {
+    id: 'laptop-13',
+    name: 'Laptop 13" / MacBook',
+    type: 'desktop',
+    category: 'Laptop',
+    width: 1280,
+    height: 800,
+    icon: '💻',
+    scalePreset: 0.48
+  },
+  {
+    id: 'desktop-hd',
+    name: 'Desktop Standard',
+    type: 'desktop',
+    category: 'Desktop',
+    width: 1440,
+    height: 900,
+    icon: '🖥️',
+    scalePreset: 0.45
+  }
+];
+
+// State
+let currentDevices = loadDevicesFromStorage();
+let currentUrl = 'https://example.com';
+let activeFilter = 'all';
+let currentGlobalScale = 0.75; // 'auto' | 0.5 | 0.75 | 1.0
+let deviceStates = {}; // id -> { width, height, isLandscape }
+
+// DOM Elements
+const els = {
+  urlForm: document.getElementById('urlForm'),
+  targetUrlInput: document.getElementById('targetUrlInput'),
+  currentUrlDisplay: document.getElementById('currentUrlDisplay'),
+  btnOpenExternal: document.getElementById('btnOpenExternal'),
+  btnRotateAll: document.getElementById('btnRotateAll'),
+  btnReloadAll: document.getElementById('btnReloadAll'),
+  btnThemeToggle: document.getElementById('btnThemeToggle'),
+  themeIcon: document.getElementById('themeIcon'),
+  scaleControl: document.getElementById('scaleControl'),
+  filterPills: document.getElementById('filterPills'),
+  deviceGrid: document.getElementById('deviceGrid'),
+  emptyState: document.getElementById('emptyState'),
+  countAll: document.getElementById('countAll'),
+  countMobile: document.getElementById('countMobile'),
+  countTablet: document.getElementById('countTablet'),
+  countDesktop: document.getElementById('countDesktop'),
+  // Modal Elements
+  btnManageDevices: document.getElementById('btnManageDevices'),
+  deviceModalOverlay: document.getElementById('deviceModalOverlay'),
+  modalCloseBtn: document.getElementById('modalCloseBtn'),
+  btnOpenAddForm: document.getElementById('btnOpenAddForm'),
+  btnResetDefaults: document.getElementById('btnResetDefaults'),
+  deviceFormWrap: document.getElementById('deviceFormWrap'),
+  deviceForm: document.getElementById('deviceForm'),
+  formTitle: document.getElementById('formTitle'),
+  editDeviceId: document.getElementById('editDeviceId'),
+  inputDevName: document.getElementById('inputDevName'),
+  selectDevType: document.getElementById('selectDevType'),
+  inputDevWidth: document.getElementById('inputDevWidth'),
+  inputDevHeight: document.getElementById('inputDevHeight'),
+  btnCancelForm: document.getElementById('btnCancelForm'),
+  modalDeviceList: document.getElementById('modalDeviceList')
+};
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  initUrlFromParams();
+  initTheme();
+  initDeviceStates();
+  renderDeviceCounts();
+  renderDeviceGrid();
+  bindEvents();
+});
+
+function loadDevicesFromStorage() {
+  try {
+    const saved = localStorage.getItem('sitelens_custom_devices');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not load custom devices:', err);
+  }
+  return structuredClone(DEFAULT_DEVICE_PRESETS);
+}
+
+function saveDevicesToStorage() {
+  try {
+    localStorage.setItem('sitelens_custom_devices', JSON.stringify(currentDevices));
+  } catch (err) {
+    console.warn('Could not save custom devices:', err);
+  }
+}
+
+function initUrlFromParams() {
+  const params = new URLSearchParams(window.location.search);
+  const urlParam = params.get('url');
+  if (urlParam && /^https?:\/\//i.test(urlParam.trim())) {
+    currentUrl = urlParam.trim();
+  } else {
+    currentUrl = 'https://example.com';
+  }
+  els.targetUrlInput.value = currentUrl;
+  els.currentUrlDisplay.textContent = currentUrl;
+  els.btnOpenExternal.href = currentUrl;
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('sitelens_theme') || 'dark';
+  applyTheme(saved);
+}
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.body.classList.remove('theme-dark');
+    document.body.classList.add('theme-light');
+    els.themeIcon.textContent = '🌙';
+  } else {
+    document.body.classList.remove('theme-light');
+    document.body.classList.add('theme-dark');
+    els.themeIcon.textContent = '☀️';
+  }
+  localStorage.setItem('sitelens_theme', theme);
+}
+
+function initDeviceStates() {
+  for (const dev of currentDevices) {
+    if (!deviceStates[dev.id]) {
+      deviceStates[dev.id] = {
+        width: dev.width,
+        height: dev.height,
+        isLandscape: dev.width > dev.height
+      };
+    }
+  }
+}
+
+function renderDeviceCounts() {
+  const mobileCount = currentDevices.filter((d) => d.type === 'mobile').length;
+  const tabletCount = currentDevices.filter((d) => d.type === 'tablet').length;
+  const desktopCount = currentDevices.filter((d) => d.type === 'desktop').length;
+
+  els.countAll.textContent = currentDevices.length;
+  els.countMobile.textContent = mobileCount;
+  els.countTablet.textContent = tabletCount;
+  els.countDesktop.textContent = desktopCount;
+}
+
+function getScaleForDevice(dev) {
+  if (currentGlobalScale === 'auto') {
+    return dev.scalePreset || (dev.type === 'mobile' ? 0.75 : dev.type === 'tablet' ? 0.6 : 0.48);
+  }
+  return Number(currentGlobalScale) || 0.75;
+}
+
+function renderDeviceGrid() {
+  els.deviceGrid.innerHTML = '';
+
+  if (currentDevices.length === 0) {
+    els.emptyState.classList.remove('hidden');
+    return;
+  }
+  els.emptyState.classList.add('hidden');
+
+  for (const dev of currentDevices) {
+    const state = deviceStates[dev.id] || {
+      width: dev.width,
+      height: dev.height,
+      isLandscape: dev.width > dev.height
+    };
+    deviceStates[dev.id] = state;
+
+    const scale = getScaleForDevice(dev);
+    const scaledWidth = Math.round(state.width * scale);
+    const scaledHeight = Math.round(state.height * scale);
+
+    const card = document.createElement('div');
+    card.className = `device-card`;
+    card.id = `card-${dev.id}`;
+    card.dataset.id = dev.id;
+    card.dataset.type = dev.type;
+
+    if (activeFilter !== 'all' && dev.type !== activeFilter) {
+      card.classList.add('hidden');
+    }
+
+    // Top Header of card with Rotate, Reload, Edit, Delete, Isolate actions
+    const header = document.createElement('div');
+    header.className = 'device-header';
+    header.innerHTML = `
+      <div class="device-title-wrap">
+        <span class="device-name">
+          <span>${dev.icon || (dev.type === 'mobile' ? '📱' : dev.type === 'tablet' ? '📟' : '🖥️')}</span>
+          <span>${dev.name}</span>
+        </span>
+        <span class="device-dims" id="dims-${dev.id}">${state.width} × ${state.height} px (${state.isLandscape ? 'Landscape' : 'Portrait'}) • ${Math.round(scale * 100)}%</span>
+      </div>
+      <div class="device-actions">
+        <button type="button" class="device-btn btn-rotate" title="Rotate device orientation" data-id="${dev.id}">🔄</button>
+        <button type="button" class="device-btn btn-reload" title="Reload this frame" data-id="${dev.id}">↺</button>
+        <button type="button" class="device-btn btn-edit-device" title="Edit this device" data-id="${dev.id}">✏️</button>
+        <button type="button" class="device-btn btn-delete-device" title="Delete this device" data-id="${dev.id}">🗑️</button>
+        <button type="button" class="device-btn btn-isolate" title="Open in separate tab" data-id="${dev.id}">↗</button>
+      </div>
+    `;
+
+    // Outer Bezel Shell
+    const bezel = document.createElement('div');
+    bezel.className = 'device-bezel';
+
+    if (dev.type === 'mobile') {
+      const notch = document.createElement('div');
+      notch.className = 'notch-pill';
+      notch.innerHTML = `<span class="notch-camera-dot"></span>`;
+      bezel.appendChild(notch);
+    }
+
+    // Screen Container
+    const screenOuter = document.createElement('div');
+    screenOuter.className = 'screen-outer-container';
+    screenOuter.id = `screenOuter-${dev.id}`;
+    screenOuter.style.width = `${scaledWidth}px`;
+    screenOuter.style.height = `${scaledHeight}px`;
+
+    const screenScaled = document.createElement('div');
+    screenScaled.className = 'screen-scaled-wrapper';
+    screenScaled.id = `screenScaled-${dev.id}`;
+    screenScaled.style.width = `${state.width}px`;
+    screenScaled.style.height = `${state.height}px`;
+    screenScaled.style.transform = `scale(${scale})`;
+
+    const iframe = document.createElement('iframe');
+    iframe.className = 'device-iframe';
+    iframe.id = `iframe-${dev.id}`;
+    iframe.src = currentUrl;
+    iframe.title = `${dev.name} Viewport`;
+    iframe.loading = 'lazy';
+
+    screenScaled.appendChild(iframe);
+    screenOuter.appendChild(screenScaled);
+    bezel.appendChild(screenOuter);
+
+    if (dev.type === 'mobile') {
+      const homeBar = document.createElement('div');
+      homeBar.className = 'home-bar';
+      bezel.appendChild(homeBar);
+    } else if (dev.type === 'desktop') {
+      const chin = document.createElement('div');
+      chin.className = 'desktop-chin';
+      chin.innerHTML = `<span class="desktop-logo-dot"></span>`;
+      bezel.appendChild(chin);
+    }
+
+    card.appendChild(header);
+    card.appendChild(bezel);
+    els.deviceGrid.appendChild(card);
+  }
+
+  bindCardActionEvents();
+}
+
+function updateDeviceCardLayout(devId) {
+  const dev = currentDevices.find((d) => d.id === devId);
+  const state = deviceStates[devId];
+  if (!dev || !state) return;
+
+  const scale = getScaleForDevice(dev);
+  const scaledWidth = Math.round(state.width * scale);
+  const scaledHeight = Math.round(state.height * scale);
+
+  const dimsEl = document.getElementById(`dims-${devId}`);
+  if (dimsEl) {
+    dimsEl.textContent = `${state.width} × ${state.height} px (${state.isLandscape ? 'Landscape' : 'Portrait'}) • ${Math.round(scale * 100)}%`;
+  }
+
+  const screenOuter = document.getElementById(`screenOuter-${devId}`);
+  if (screenOuter) {
+    screenOuter.style.width = `${scaledWidth}px`;
+    screenOuter.style.height = `${scaledHeight}px`;
+  }
+
+  const screenScaled = document.getElementById(`screenScaled-${devId}`);
+  if (screenScaled) {
+    screenScaled.style.width = `${state.width}px`;
+    screenScaled.style.height = `${state.height}px`;
+    screenScaled.style.transform = `scale(${scale})`;
+  }
+}
+
+function updateAllDeviceScales() {
+  for (const dev of currentDevices) {
+    updateDeviceCardLayout(dev.id);
+  }
+}
+
+function rotateDevice(devId) {
+  const state = deviceStates[devId];
+  if (!state) return;
+
+  const temp = state.width;
+  state.width = state.height;
+  state.height = temp;
+  state.isLandscape = !state.isLandscape;
+
+  updateDeviceCardLayout(devId);
+}
+
+function rotateAllDevices() {
+  for (const dev of currentDevices) {
+    if (dev.type === 'mobile' || dev.type === 'tablet') {
+      rotateDevice(dev.id);
+    }
+  }
+}
+
+function reloadDevice(devId) {
+  const iframe = document.getElementById(`iframe-${devId}`);
+  if (iframe) {
+    iframe.src = currentUrl;
+  }
+}
+
+function reloadAllDevices() {
+  for (const dev of currentDevices) {
+    reloadDevice(dev.id);
+  }
+}
+
+function navigateAll(newUrl) {
+  let target = (newUrl || '').trim();
+  if (!/^https?:\/\//i.test(target)) {
+    target = 'https://' + target;
+  }
+  currentUrl = target;
+  els.targetUrlInput.value = currentUrl;
+  els.currentUrlDisplay.textContent = currentUrl;
+  els.btnOpenExternal.href = currentUrl;
+
+  const newSearch = `?url=${encodeURIComponent(currentUrl)}`;
+  window.history.replaceState(null, '', newSearch);
+
+  reloadAllDevices();
+}
+
+/* ==========================================================================
+   Device Management (Add, Edit, Delete, Reset to Default)
+   ========================================================================== */
+
+function openDeviceModal() {
+  renderModalDeviceList();
+  hideDeviceForm();
+  els.deviceModalOverlay.classList.remove('hidden');
+}
+
+function closeDeviceModal() {
+  els.deviceModalOverlay.classList.add('hidden');
+  hideDeviceForm();
+}
+
+function showAddDeviceForm() {
+  els.formTitle.textContent = 'Add New Device';
+  els.editDeviceId.value = '';
+  els.inputDevName.value = '';
+  els.selectDevType.value = 'mobile';
+  els.inputDevWidth.value = '';
+  els.inputDevHeight.value = '';
+  els.deviceFormWrap.classList.remove('hidden');
+  els.inputDevName.focus();
+}
+
+function showEditDeviceForm(devId) {
+  const dev = currentDevices.find((d) => d.id === devId);
+  if (!dev) return;
+
+  els.formTitle.textContent = `Edit Device: ${dev.name}`;
+  els.editDeviceId.value = dev.id;
+  els.inputDevName.value = dev.name;
+  els.selectDevType.value = dev.type;
+  els.inputDevWidth.value = dev.width;
+  els.inputDevHeight.value = dev.height;
+
+  els.deviceFormWrap.classList.remove('hidden');
+  els.inputDevName.focus();
+}
+
+function hideDeviceForm() {
+  els.deviceFormWrap.classList.add('hidden');
+  els.editDeviceId.value = '';
+  els.deviceForm.reset();
+}
+
+function saveDeviceFromForm() {
+  const editId = (els.editDeviceId.value || '').trim();
+  const name = (els.inputDevName.value || '').trim();
+  const type = els.selectDevType.value;
+  const width = parseInt(els.inputDevWidth.value, 10);
+  const height = parseInt(els.inputDevHeight.value, 10);
+
+  if (!name || isNaN(width) || isNaN(height) || width < 200 || height < 200) {
+    alert('Please enter a valid name and dimensions (min 200px).');
+    return;
+  }
+
+  const icon = type === 'mobile' ? '📱' : type === 'tablet' ? '📟' : '🖥️';
+  const category = type === 'mobile' ? 'Mobile' : type === 'tablet' ? 'Tablet' : 'Desktop';
+
+  if (editId) {
+    // Edit existing device
+    const idx = currentDevices.findIndex((d) => d.id === editId);
+    if (idx !== -1) {
+      currentDevices[idx] = {
+        ...currentDevices[idx],
+        name,
+        type,
+        category,
+        width,
+        height,
+        icon
+      };
+      deviceStates[editId] = {
+        width,
+        height,
+        isLandscape: width > height
+      };
+    }
+  } else {
+    // Add new device
+    const newId = `dev-${Date.now()}`;
+    const newDevice = {
+      id: newId,
+      name,
+      type,
+      category,
+      width,
+      height,
+      icon,
+      scalePreset: type === 'mobile' ? 0.75 : type === 'tablet' ? 0.6 : 0.48
+    };
+    currentDevices.push(newDevice);
+    deviceStates[newId] = {
+      width,
+      height,
+      isLandscape: width > height
+    };
+  }
+
+  saveDevicesToStorage();
+  hideDeviceForm();
+  renderDeviceCounts();
+  renderDeviceGrid();
+  renderModalDeviceList();
+}
+
+function deleteDevice(devId) {
+  if (currentDevices.length <= 1) {
+    alert('You must keep at least one device in the matrix.');
+    return;
+  }
+
+  const dev = currentDevices.find((d) => d.id === devId);
+  const name = dev ? dev.name : 'this device';
+
+  if (confirm(`Are you sure you want to delete "${name}"?`)) {
+    currentDevices = currentDevices.filter((d) => d.id !== devId);
+    delete deviceStates[devId];
+
+    saveDevicesToStorage();
+    renderDeviceCounts();
+    renderDeviceGrid();
+    renderModalDeviceList();
+  }
+}
+
+function resetDevicesToDefaults() {
+  if (confirm('Reset all device presets back to the original 7 defaults? Any custom added devices will be restored.')) {
+    currentDevices = structuredClone(DEFAULT_DEVICE_PRESETS);
+    deviceStates = {};
+    initDeviceStates();
+
+    saveDevicesToStorage();
+    renderDeviceCounts();
+    renderDeviceGrid();
+    renderModalDeviceList();
+    hideDeviceForm();
+  }
+}
+
+function renderModalDeviceList() {
+  els.modalDeviceList.innerHTML = '';
+
+  for (const dev of currentDevices) {
+    const item = document.createElement('div');
+    item.className = 'modal-device-item';
+    item.dataset.id = dev.id;
+
+    item.innerHTML = `
+      <div class="modal-device-meta">
+        <span class="modal-dev-icon">${dev.icon || '📱'}</span>
+        <div>
+          <span class="modal-dev-name">${dev.name}</span>
+          <span class="modal-dev-dims">${dev.width} × ${dev.height} px</span>
+        </div>
+        <span class="modal-dev-badge">${dev.category || dev.type}</span>
+      </div>
+      <div class="modal-dev-actions">
+        <button type="button" class="btn-item-action btn-modal-edit" data-id="${dev.id}">✏️ Edit</button>
+        <button type="button" class="btn-item-action delete-action btn-modal-delete" data-id="${dev.id}">🗑️ Delete</button>
+      </div>
+    `;
+
+    els.modalDeviceList.appendChild(item);
+  }
+
+  // Bind edit/delete inside modal
+  els.modalDeviceList.querySelectorAll('.btn-modal-edit').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showEditDeviceForm(btn.dataset.id);
+    });
+  });
+
+  els.modalDeviceList.querySelectorAll('.btn-modal-delete').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteDevice(btn.dataset.id);
+    });
+  });
+}
+
+/* ==========================================================================
+   Event Listeners
+   ========================================================================== */
+
+function bindEvents() {
+  // URL form submission
+  els.urlForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    navigateAll(els.targetUrlInput.value);
+  });
+
+  // Scale buttons
+  els.scaleControl.querySelectorAll('.seg-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      els.scaleControl.querySelectorAll('.seg-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const val = btn.dataset.scale;
+      currentGlobalScale = val === 'auto' ? 'auto' : parseFloat(val);
+      updateAllDeviceScales();
+    });
+  });
+
+  // Filter pills
+  els.filterPills.querySelectorAll('.filter-pill').forEach((pill) => {
+    pill.addEventListener('click', () => {
+      els.filterPills.querySelectorAll('.filter-pill').forEach((p) => p.classList.remove('active'));
+      pill.classList.add('active');
+      activeFilter = pill.dataset.filter || 'all';
+
+      document.querySelectorAll('.device-card').forEach((card) => {
+        const type = card.dataset.type;
+        const shouldShow = activeFilter === 'all' || type === activeFilter;
+        card.classList.toggle('hidden', !shouldShow);
+      });
+    });
+  });
+
+  // Global actions
+  els.btnRotateAll.addEventListener('click', () => {
+    rotateAllDevices();
+  });
+
+  els.btnReloadAll.addEventListener('click', () => {
+    reloadAllDevices();
+  });
+
+  els.btnThemeToggle.addEventListener('click', () => {
+    const isDark = document.body.classList.contains('theme-dark');
+    applyTheme(isDark ? 'light' : 'dark');
+  });
+
+  // Modal actions
+  els.btnManageDevices?.addEventListener('click', () => {
+    openDeviceModal();
+  });
+
+  els.modalCloseBtn?.addEventListener('click', () => {
+    closeDeviceModal();
+  });
+
+  els.deviceModalOverlay?.addEventListener('click', (e) => {
+    if (e.target === els.deviceModalOverlay) {
+      closeDeviceModal();
+    }
+  });
+
+  els.btnOpenAddForm?.addEventListener('click', () => {
+    showAddDeviceForm();
+  });
+
+  els.btnCancelForm?.addEventListener('click', () => {
+    hideDeviceForm();
+  });
+
+  els.deviceForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveDeviceFromForm();
+  });
+
+  els.btnResetDefaults?.addEventListener('click', () => {
+    resetDevicesToDefaults();
+  });
+}
+
+function bindCardActionEvents() {
+  // Individual card action buttons in the grid
+  document.querySelectorAll('.btn-rotate').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      rotateDevice(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll('.btn-reload').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      reloadDevice(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll('.btn-isolate').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.open(currentUrl, '_blank');
+    });
+  });
+
+  // Direct Edit from card
+  document.querySelectorAll('.btn-edit-device').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDeviceModal();
+      showEditDeviceForm(btn.dataset.id);
+    });
+  });
+
+  // Direct Delete from card
+  document.querySelectorAll('.btn-delete-device').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteDevice(btn.dataset.id);
+    });
+  });
+}

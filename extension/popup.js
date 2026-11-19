@@ -22,7 +22,7 @@ const CORE_METRICS = [
 ];
 
 const DEFAULT_SETTINGS = {
-  activeModeTab: 'lighthouse', // 'lighthouse' | 'security'
+  activeModeTab: 'lighthouse', // 'lighthouse' | 'security' | 'responsive'
   deviceMode: 'both', // 'both' | 'desktop' | 'mobile'
   throttlingMethod: 'simulate', // 'simulate' (DevTools Incognito 1:1) | 'devtools' (Applied Packet Throttling)
   categories: {
@@ -128,8 +128,11 @@ const els = {
   // Main Mode Switcher
   tabBtnLighthouse: document.getElementById('tabBtnLighthouse'),
   tabBtnSecurity: document.getElementById('tabBtnSecurity'),
+  tabBtnResponsive: document.getElementById('tabBtnResponsive'),
   lighthouseTabPanel: document.getElementById('lighthouseTabPanel'),
   securityTabPanel: document.getElementById('securityTabPanel'),
+  responsiveTabPanel: document.getElementById('responsiveTabPanel'),
+  launchMatrixBtn: document.getElementById('launchMatrixBtn'),
   // Security Scanner Controls & Dashboard
   secScopeFull: document.getElementById('secScopeFull'),
   secScopeQuick: document.getElementById('secScopeQuick'),
@@ -206,18 +209,28 @@ async function saveSettings() {
 }
 
 function setModeTabUI(tab) {
-  const isSec = tab === 'security';
-  currentSettings.activeModeTab = isSec ? 'security' : 'lighthouse';
+  const activeTab = tab === 'security' ? 'security' : tab === 'responsive' ? 'responsive' : 'lighthouse';
+  currentSettings.activeModeTab = activeTab;
+
   if (els.tabBtnLighthouse) {
-    els.tabBtnLighthouse.classList.toggle('active', !isSec);
-    els.tabBtnLighthouse.setAttribute('aria-selected', String(!isSec));
+    const isLight = activeTab === 'lighthouse';
+    els.tabBtnLighthouse.classList.toggle('active', isLight);
+    els.tabBtnLighthouse.setAttribute('aria-selected', String(isLight));
   }
   if (els.tabBtnSecurity) {
+    const isSec = activeTab === 'security';
     els.tabBtnSecurity.classList.toggle('active', isSec);
     els.tabBtnSecurity.setAttribute('aria-selected', String(isSec));
   }
-  if (els.lighthouseTabPanel) els.lighthouseTabPanel.classList.toggle('hidden', isSec);
-  if (els.securityTabPanel) els.securityTabPanel.classList.toggle('hidden', !isSec);
+  if (els.tabBtnResponsive) {
+    const isRes = activeTab === 'responsive';
+    els.tabBtnResponsive.classList.toggle('active', isRes);
+    els.tabBtnResponsive.setAttribute('aria-selected', String(isRes));
+  }
+
+  if (els.lighthouseTabPanel) els.lighthouseTabPanel.classList.toggle('hidden', activeTab !== 'lighthouse');
+  if (els.securityTabPanel) els.securityTabPanel.classList.toggle('hidden', activeTab !== 'security');
+  if (els.responsiveTabPanel) els.responsiveTabPanel.classList.toggle('hidden', activeTab !== 'responsive');
 }
 
 function setSecScopeUI(scope) {
@@ -392,7 +405,7 @@ async function restorePreviousDashboard() {
    ========================================================================== */
 
 function bindEvents() {
-  // Main Mode Tab Switching (Lighthouse vs Security Scanner)
+  // Main Mode Tab Switching (Lighthouse vs Security Scanner vs Responsive Matrix)
   els.tabBtnLighthouse?.addEventListener('click', () => {
     setModeTabUI('lighthouse');
     saveSettings();
@@ -400,6 +413,22 @@ function bindEvents() {
   els.tabBtnSecurity?.addEventListener('click', () => {
     setModeTabUI('security');
     saveSettings();
+  });
+  els.tabBtnResponsive?.addEventListener('click', () => {
+    setModeTabUI('responsive');
+    saveSettings();
+  });
+
+  // Launch Responsive Matrix Studio in New Fullscreen Tab
+  els.launchMatrixBtn?.addEventListener('click', () => {
+    let targetUrl = (els.urlInput.value || '').trim();
+    if (!targetUrl) {
+      targetUrl = 'https://example.com';
+    } else if (!/^https?:\/\//i.test(targetUrl)) {
+      targetUrl = 'https://' + targetUrl;
+    }
+    const matrixUrl = chrome.runtime.getURL(`responsive-matrix.html?url=${encodeURIComponent(targetUrl)}`);
+    chrome.tabs.create({ url: matrixUrl });
   });
 
   els.serverStatusPill.addEventListener('click', () => {

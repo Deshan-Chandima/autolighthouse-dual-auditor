@@ -25,7 +25,30 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (!stored.settings) {
     await chrome.storage.local.set({ settings: DEFAULT_SETTINGS });
   }
+  await setupResponsiveIframeRules();
 });
+
+chrome.runtime.onStartup.addListener(async () => {
+  await setupResponsiveIframeRules();
+});
+
+/**
+ * Configures declarativeNetRequest rules to remove X-Frame-Options and restrictive CSP
+ * ONLY for sub_frame requests initiated from within this extension's Responsive Matrix pages.
+ */
+async function setupResponsiveIframeRules() {
+  if (!chrome.declarativeNetRequest) return;
+  try {
+    // Clear any previous dynamic rules so the static ruleset in rules.json takes clean priority
+    const currentRules = await chrome.declarativeNetRequest.getDynamicRules();
+    const ruleIds = currentRules.map((r) => r.id);
+    if (ruleIds.length > 0) {
+      await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ruleIds });
+    }
+  } catch (err) {
+    console.warn('[SiteLens AI] Dynamic rules cleanup notice:', err);
+  }
+}
 
 /**
  * Converts a UTF-8 string into a base64 Data URL (safe inside MV3 Service Workers where URL.createObjectURL is unavailable)
