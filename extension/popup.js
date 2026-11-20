@@ -30,6 +30,7 @@ const CORE_METRICS = [
 
 const DEFAULT_SETTINGS = {
   serverUrl: DEFAULT_SERVER_URL,
+  psiApiKey: '',
   activeModeTab: 'lighthouse', // 'lighthouse' | 'security' | 'responsive'
   deviceMode: 'both', // 'both' | 'desktop' | 'mobile'
   throttlingMethod: 'simulate', // 'simulate' (DevTools Incognito 1:1) | 'devtools' (Applied Packet Throttling)
@@ -76,6 +77,8 @@ const els = {
   serverUrlInput: document.getElementById('serverUrlInput'),
   saveServerUrlBtn: document.getElementById('saveServerUrlBtn'),
   resetServerUrlBtn: document.getElementById('resetServerUrlBtn'),
+  psiApiKeyInput: document.getElementById('psiApiKeyInput'),
+  savePsiKeyBtn: document.getElementById('savePsiKeyBtn'),
   fallbackBanner: document.getElementById('fallbackBanner'),
   fallbackMessage: document.getElementById('fallbackMessage'),
   urlInput: document.getElementById('urlInput'),
@@ -206,6 +209,11 @@ async function loadSettings() {
         formats: { ...DEFAULT_SETTINGS.formats, ...(data.settings.formats || {}) },
         secModules: { ...DEFAULT_SETTINGS.secModules, ...(data.settings.secModules || {}) }
       };
+
+      // Auto-migrate legacy localhost:9876 setting to cloud URL if not explicitly marked custom
+      if (data.settings.serverUrl === 'http://localhost:9876' && !data.settings.isCustomServer) {
+        currentSettings.serverUrl = DEFAULT_SERVER_URL;
+      }
     }
   } catch (err) {
     console.warn('Could not load settings from storage:', err);
@@ -306,6 +314,9 @@ function applySettingsToUI() {
   setThrottlingModeUI(currentSettings.throttlingMethod || 'simulate');
   if (els.serverUrlInput) {
     els.serverUrlInput.value = getActiveServerUrl();
+  }
+  if (els.psiApiKeyInput) {
+    els.psiApiKeyInput.value = currentSettings.psiApiKey || '';
   }
 
   updateRunButtonLabel();
@@ -479,6 +490,7 @@ function bindEvents() {
     }
     clearError();
     currentSettings.serverUrl = val || DEFAULT_SERVER_URL;
+    currentSettings.isCustomServer = Boolean(val && val !== DEFAULT_SERVER_URL);
     if (els.serverUrlInput) els.serverUrlInput.value = currentSettings.serverUrl;
     await saveSettings();
     const ok = await checkLocalServerHealth();
@@ -489,9 +501,23 @@ function bindEvents() {
 
   els.resetServerUrlBtn?.addEventListener('click', async () => {
     currentSettings.serverUrl = DEFAULT_SERVER_URL;
+    currentSettings.isCustomServer = false;
     if (els.serverUrlInput) els.serverUrlInput.value = DEFAULT_SERVER_URL;
     await saveSettings();
     await checkLocalServerHealth();
+  });
+
+  els.savePsiKeyBtn?.addEventListener('click', async () => {
+    const key = (els.psiApiKeyInput?.value || '').trim();
+    currentSettings.psiApiKey = key;
+    await saveSettings();
+    if (els.savePsiKeyBtn) {
+      const origText = els.savePsiKeyBtn.textContent;
+      els.savePsiKeyBtn.textContent = 'Saved!';
+      setTimeout(() => {
+        if (els.savePsiKeyBtn) els.savePsiKeyBtn.textContent = origText;
+      }, 1500);
+    }
   });
 
   els.useActiveTabBtn.addEventListener('click', () => {
@@ -995,11 +1021,22 @@ async function runViaPageSpeedFallback({ url, devices, categories, formats }) {
     for (const cat of categories) {
       params.append('category', cat);
     }
+    if (currentSettings.psiApiKey && currentSettings.psiApiKey.trim()) {
+      params.append('key', currentSettings.psiApiKey.trim());
+    }
 
     const res = await fetch(`${PSI_API_URL}?${params.toString()}`);
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
       const msg = errJson?.error?.message || `PageSpeed Insights HTTP ${res.status}`;
+      if (msg.includes('Quota exceeded') || res.status === 429) {
+        throw new Error(
+          `Google PageSpeed API free anonymous IP quota reached.\n\n` +
+          `Fix 1: Run 'start-server.bat' to launch the unlimited Local Lighthouse Engine (0 quota limits & 100% accurate).\n` +
+          `Fix 2: Enter your free Google PSI API Key in Settings (Click top status pill > Paste key for 25,000 free queries/day).\n` +
+          `Fix 3: Switch to the 'Security' tab — Cloud Security Audits run without quota on Vercel!`
+        );
+      }
       throw new Error(`PSI Fallback Error (${deviceTitle}): ${msg}`);
     }
 
