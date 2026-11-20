@@ -406,9 +406,7 @@ async function checkLocalServerHealth() {
       };
       els.serverStatusDot.className = 'status-dot online';
       els.serverStatusText.textContent = isCloudHost
-        ? serverCapabilities.lighthouse
-          ? 'Cloud Engine: Online'
-          : 'Cloud Security + PSI'
+        ? 'SiteLens Cloud: Online'
         : 'Local Engine: Online';
       els.fallbackBanner.classList.add('hidden');
       updateRunButtonLabel();
@@ -1001,6 +999,8 @@ async function runViaPageSpeedFallback({ url, devices, categories, formats }) {
   const timestamp = new Date().toISOString();
   const resultsByDevice = {};
   const summariesByDevice = {};
+  const serverUrl = getActiveServerUrl();
+  const canUseCloudProxy = isServerOnline && !isLocalhostUrl(serverUrl);
 
   for (let i = 0; i < devices.length; i++) {
     const device = devices[i];
@@ -1010,8 +1010,8 @@ async function runViaPageSpeedFallback({ url, devices, categories, formats }) {
     setProgressUI(
       stepNum,
       devices.length,
-      `Step ${stepNum}/${devices.length}: Auditing ${deviceTitle} (PSI Cloud)...`,
-      `Querying Google PageSpeed Insights API (${device})...`
+      `Step ${stepNum}/${devices.length}: Auditing ${deviceTitle} (Cloud Engine)...`,
+      canUseCloudProxy ? 'Auditing via SiteLens Cloud Engine...' : `Querying Google PageSpeed Insights (${device})...`
     );
 
     const params = new URLSearchParams({
@@ -1025,23 +1025,45 @@ async function runViaPageSpeedFallback({ url, devices, categories, formats }) {
       params.append('key', currentSettings.psiApiKey.trim());
     }
 
-    const res = await fetch(`${PSI_API_URL}?${params.toString()}`);
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      const msg = errJson?.error?.message || `PageSpeed Insights HTTP ${res.status}`;
-      if (msg.includes('Quota exceeded') || res.status === 429) {
-        throw new Error(
-          `Google PageSpeed API free anonymous IP quota reached.\n\n` +
-          `Fix 1: Run 'start-server.bat' to launch the unlimited Local Lighthouse Engine (0 quota limits & 100% accurate).\n` +
-          `Fix 2: Enter your free Google PSI API Key in Settings (Click top status pill > Paste key for 25,000 free queries/day).\n` +
-          `Fix 3: Switch to the 'Security' tab — Cloud Security Audits run without quota on Vercel!`
-        );
+    let lhr = null;
+    let proxyError = null;
+
+    // 1. Try SiteLens Cloud Engine proxy first (runs in Vercel data center, avoiding local ISP IP quota)
+    if (canUseCloudProxy) {
+      try {
+        const proxyRes = await fetch(`${serverUrl}/api/psi?${params.toString()}`);
+        const proxyData = await proxyRes.json().catch(() => ({}));
+        if (proxyRes.ok && proxyData?.lighthouseResult) {
+          lhr = proxyData.lighthouseResult;
+        } else {
+          proxyError = proxyData?.error || `Proxy HTTP ${proxyRes.status}`;
+        }
+      } catch (err) {
+        proxyError = err.message;
       }
-      throw new Error(`PSI Fallback Error (${deviceTitle}): ${msg}`);
     }
 
-    const data = await res.json();
-    const lhr = data.lighthouseResult;
+    // 2. Direct Google PSI fallback if proxy wasn't available or failed
+    if (!lhr) {
+      const res = await fetch(`${PSI_API_URL}?${params.toString()}`);
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        const msg = errJson?.error?.message || proxyError || `PageSpeed Insights HTTP ${res.status}`;
+        if (msg.includes('Quota exceeded') || res.status === 429) {
+          throw new Error(
+            `Google PageSpeed API free anonymous IP quota reached.\n\n` +
+            `Fix 1: Run 'start-server.bat' to launch the unlimited Local Lighthouse Engine (0 quota limits & 100% accurate).\n` +
+            `Fix 2: Enter your free Google PSI API Key in Settings (Click top status pill > Paste key for 25,000 free queries/day).\n` +
+            `Fix 3: Switch to the 'Security' tab — Cloud Security Audits run without quota on Vercel!`
+          );
+        }
+        throw new Error(`Cloud Audit Error (${deviceTitle}): ${msg}`);
+      }
+
+      const data = await res.json();
+      lhr = data.lighthouseResult;
+    }
+
     if (!lhr) {
       throw new Error(`PageSpeed Insights response did not include lighthouseResult for ${deviceTitle}.`);
     }
