@@ -3,6 +3,8 @@
  * Supports adding custom devices, editing dimensions, deleting devices, and resetting to defaults.
  */
 
+import { renderIcon, getDeviceIconName } from './icons.js';
+
 const DEFAULT_DEVICE_PRESETS = [
   {
     id: 'iphone-se',
@@ -11,7 +13,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Mobile Small',
     width: 375,
     height: 667,
-    icon: '📱',
+    iconName: 'smartphone',
     scalePreset: 0.8
   },
   {
@@ -21,7 +23,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Mobile Standard',
     width: 390,
     height: 844,
-    icon: '📱',
+    iconName: 'smartphone',
     scalePreset: 0.75
   },
   {
@@ -31,7 +33,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Android Flagship',
     width: 412,
     height: 915,
-    icon: '📱',
+    iconName: 'smartphone',
     scalePreset: 0.7
   },
   {
@@ -41,7 +43,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Tablet Portrait',
     width: 768,
     height: 1024,
-    icon: '📟',
+    iconName: 'tablet',
     scalePreset: 0.6
   },
   {
@@ -51,7 +53,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Tablet Landscape',
     width: 1024,
     height: 768,
-    icon: '📟',
+    iconName: 'tablet',
     scalePreset: 0.55
   },
   {
@@ -61,7 +63,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Laptop',
     width: 1280,
     height: 800,
-    icon: '💻',
+    iconName: 'laptop',
     scalePreset: 0.48
   },
   {
@@ -71,7 +73,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Desktop',
     width: 1440,
     height: 900,
-    icon: '🖥️',
+    iconName: 'monitor',
     scalePreset: 0.45
   }
 ];
@@ -175,11 +177,11 @@ function applyTheme(theme) {
   if (theme === 'light') {
     document.body.classList.remove('theme-dark');
     document.body.classList.add('theme-light');
-    els.themeIcon.textContent = '🌙';
+    els.themeIcon.innerHTML = renderIcon('moon', { size: 14 });
   } else {
     document.body.classList.remove('theme-light');
     document.body.classList.add('theme-dark');
-    els.themeIcon.textContent = '☀️';
+    els.themeIcon.innerHTML = renderIcon('sun', { size: 14 });
   }
   localStorage.setItem('sitelens_theme', theme);
 }
@@ -257,25 +259,24 @@ function renderDeviceGrid() {
     }
 
     // Top Header of card with Rotate, Reload, Edit, Delete, Isolate actions
+    const devIconName = getDeviceIconName(dev);
     const header = document.createElement('div');
     header.className = 'device-header';
     header.innerHTML = `
       <div class="device-title-wrap">
         <div class="device-name-row">
-          <span class="device-name">
-            <span>${dev.icon || (dev.type === 'mobile' ? '📱' : dev.type === 'tablet' ? '📟' : '🖥️')}</span>
-            <span>${dev.name}</span>
-          </span>
+          <span class="device-icon-badge" data-type="${dev.type}">${renderIcon(devIconName, { size: 13 })}</span>
+          <span class="device-name">${dev.name}</span>
           <span class="device-aspect-tag">${aspect}</span>
         </div>
         <span class="device-dims" id="dims-${dev.id}">${state.width} × ${state.height} px (${state.isLandscape ? 'Landscape' : 'Portrait'}) • <span class="tabular">${Math.round(scale * 100)}%</span></span>
       </div>
       <div class="device-actions">
-        <button type="button" class="device-btn btn-rotate" title="Rotate device orientation" data-id="${dev.id}">🔄</button>
-        <button type="button" class="device-btn btn-reload" title="Reload this frame" data-id="${dev.id}">↺</button>
-        <button type="button" class="device-btn btn-edit-device" title="Edit this device" data-id="${dev.id}">✏️</button>
-        <button type="button" class="device-btn btn-delete-device" title="Delete this device" data-id="${dev.id}">🗑️</button>
-        <button type="button" class="device-btn btn-isolate" title="Open in separate tab" data-id="${dev.id}">↗</button>
+        <button type="button" class="device-btn btn-rotate" title="Rotate device orientation" data-id="${dev.id}">${renderIcon('rotateCw', { size: 13 })}</button>
+        <button type="button" class="device-btn btn-reload" title="Reload this frame" data-id="${dev.id}">${renderIcon('refreshCw', { size: 13 })}</button>
+        <button type="button" class="device-btn btn-edit-device" title="Edit this device" data-id="${dev.id}">${renderIcon('pencil', { size: 13 })}</button>
+        <button type="button" class="device-btn btn-delete-device" title="Delete this device" data-id="${dev.id}">${renderIcon('trash2', { size: 13 })}</button>
+        <button type="button" class="device-btn btn-isolate" title="Open in separate tab" data-id="${dev.id}">${renderIcon('arrowUpRight', { size: 13 })}</button>
       </div>
     `;
 
@@ -476,7 +477,7 @@ function saveDeviceFromForm() {
     return;
   }
 
-  const icon = type === 'mobile' ? '📱' : type === 'tablet' ? '📟' : '🖥️';
+  const iconName = type === 'mobile' ? 'smartphone' : type === 'tablet' ? 'tablet' : 'monitor';
   const category = type === 'mobile' ? 'Mobile' : type === 'tablet' ? 'Tablet' : 'Desktop';
 
   if (editId) {
@@ -490,7 +491,7 @@ function saveDeviceFromForm() {
         category,
         width,
         height,
-        icon
+        iconName
       };
       deviceStates[editId] = {
         width,
@@ -508,7 +509,7 @@ function saveDeviceFromForm() {
       category,
       width,
       height,
-      icon,
+      iconName,
       scalePreset: type === 'mobile' ? 0.75 : type === 'tablet' ? 0.6 : 0.48
     };
     currentDevices.push(newDevice);
@@ -570,16 +571,16 @@ function renderModalDeviceList() {
 
     item.innerHTML = `
       <div class="modal-device-meta">
-        <span class="modal-dev-icon">${dev.icon || '📱'}</span>
+        <span class="modal-dev-icon-box" data-type="${dev.type}">${renderIcon(getDeviceIconName(dev), { size: 15 })}</span>
         <div>
           <span class="modal-dev-name">${dev.name}</span>
-          <span class="modal-dev-dims">${dev.width} × ${dev.height} px</span>
+          <span class="modal-dev-dims tabular">${dev.width} × ${dev.height} px</span>
         </div>
         <span class="modal-dev-badge">${dev.category || dev.type}</span>
       </div>
       <div class="modal-dev-actions">
-        <button type="button" class="btn-item-action btn-modal-edit" data-id="${dev.id}">✏️ Edit</button>
-        <button type="button" class="btn-item-action delete-action btn-modal-delete" data-id="${dev.id}">🗑️ Delete</button>
+        <button type="button" class="btn-item-action btn-modal-edit" data-id="${dev.id}">${renderIcon('pencil', { size: 12 })}<span>Edit</span></button>
+        <button type="button" class="btn-item-action delete-action btn-modal-delete" data-id="${dev.id}">${renderIcon('trash2', { size: 12 })}<span>Delete</span></button>
       </div>
     `;
 

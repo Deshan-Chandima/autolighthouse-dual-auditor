@@ -2,6 +2,8 @@
  * SiteLens AI - Speed & Security Suite - Popup Controller
  */
 
+import { renderIcon } from './icons.js';
+
 const LOCAL_SERVER_URL = 'http://localhost:9876';
 const PSI_API_URL = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
 
@@ -518,7 +520,7 @@ function bindEvents() {
     try {
       await navigator.clipboard.writeText(fullClipboardText);
       const originalText = els.copyAiPromptBtn.innerHTML;
-      els.copyAiPromptBtn.innerHTML = '<span>✅ Copied AI Prompt + Report to Clipboard!</span>';
+      els.copyAiPromptBtn.innerHTML = `${renderIcon('checkCircle2', { size: 14 })}<span>Copied AI Prompt + Report to Clipboard!</span>`;
       setTimeout(() => {
         els.copyAiPromptBtn.innerHTML = originalText;
       }, 2400);
@@ -633,7 +635,7 @@ function bindEvents() {
     try {
       await navigator.clipboard.writeText(lastSecurityPayload.securityReport.markdown);
       const orig = els.copySecAiPromptBtn.innerHTML;
-      els.copySecAiPromptBtn.innerHTML = '<span>✅ Copied Security Fix Prompt + Report!</span>';
+      els.copySecAiPromptBtn.innerHTML = `${renderIcon('checkCircle2', { size: 14 })}<span>Copied Security Fix Prompt + Report!</span>`;
       setTimeout(() => {
         els.copySecAiPromptBtn.innerHTML = orig;
       }, 2400);
@@ -1568,13 +1570,13 @@ function renderDashboard(payload) {
   }
   if (els.dashboardEngineBadge) {
     if (payload.source === 'psi-fallback') {
-      els.dashboardEngineBadge.textContent = '☁️ PSI API';
+      els.dashboardEngineBadge.innerHTML = `${renderIcon('cloud', { size: 11 })}<span>PSI API</span>`;
       els.dashboardEngineBadge.title = 'Audited via Google PageSpeed Insights Cloud API';
     } else if (payload.throttlingMethod === 'devtools') {
-      els.dashboardEngineBadge.textContent = '🌐 Applied (Real 4G)';
+      els.dashboardEngineBadge.innerHTML = `${renderIcon('wifi', { size: 11 })}<span>Applied (Real 4G)</span>`;
       els.dashboardEngineBadge.title = 'Applied Packet Throttling';
     } else {
-      els.dashboardEngineBadge.textContent = '🎯 DevTools 1:1';
+      els.dashboardEngineBadge.innerHTML = `${renderIcon('crosshair', { size: 11 })}<span>DevTools 1:1</span>`;
       els.dashboardEngineBadge.title = 'Simulated Throttling matching Chrome DevTools Incognito exactly';
     }
   }
@@ -2020,7 +2022,7 @@ async function runBrowserSecurityFallback({ url, scanScope, maxPages, modules })
   };
 
   const mdLines = [
-    `# 🛡️ Website Security Audit Report`,
+    `# Website Security Audit Report`,
     `- **Target URL:** ${parsedUrl.href}`,
     `- **Overall Score:** **${overallScore}/100 (Grade: ${grade})**`,
     '',
@@ -2200,7 +2202,7 @@ function renderSecurityDashboard(payload) {
     if (findings.length === 0) {
       els.secFindingsList.innerHTML = `
         <div class="sec-finding-card">
-          <div class="sec-finding-title" style="color: #15803d">✅ Zero vulnerabilities detected!</div>
+          <div class="sec-finding-title inline-icon-label" style="color: #15803d">${renderIcon('checkCircle2', { size: 14 })}<span>Zero vulnerabilities detected!</span></div>
           <div class="sec-finding-desc">All checked security headers, TLS settings, sensitive paths, and DOM scripts passed inspection.</div>
         </div>
       `;
@@ -2218,7 +2220,7 @@ function renderSecurityDashboard(payload) {
                 <span class="impact-badge ${badgeClass}">${badgeLabel}</span>
               </div>
               <div class="sec-finding-desc">${f.description}</div>
-              ${f.remediation ? `<div class="sec-finding-fix">💡 <strong>Fix:</strong> ${f.remediation}</div>` : ''}
+              ${f.remediation ? `<div class="sec-finding-fix">${renderIcon('wrench', { size: 12 })}<span><strong>Fix:</strong> ${f.remediation}</span></div>` : ''}
             </div>
           `;
         })

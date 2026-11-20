@@ -61,6 +61,85 @@ body {
   letter-spacing: -0.01em;
 }
 
+.ui-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+.inline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.key-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.device-icon-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--accent-cyan);
+}
+
+.device-icon-badge[data-type="tablet"] {
+  color: var(--accent-violet);
+}
+
+.device-icon-badge[data-type="desktop"] {
+  color: var(--accent-emerald);
+}
+
+.modal-dev-icon-box {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.22);
+  color: var(--accent-cyan);
+}
+
+.modal-dev-icon-box[data-type="tablet"] {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.24);
+  color: var(--accent-violet);
+}
+
+.modal-dev-icon-box[data-type="desktop"] {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.24);
+  color: var(--accent-emerald);
+}
+
+.empty-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  color: var(--accent-cyan);
+}
+
 .matrix-app {
   display: flex;
   flex-direction: column;
@@ -351,11 +430,14 @@ body.theme-light .matrix-header {
 }
 
 .filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
   border-radius: 20px;
-  padding: 3px 10px;
+  padding: 4px 11px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
