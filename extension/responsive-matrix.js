@@ -132,12 +132,20 @@ const els = {
 };
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initUrlFromParams();
   initTheme();
   initDeviceStates();
   applyLayoutMode(currentLayoutMode);
   renderDeviceCounts();
+  // Register tab-scoped DNR session rule BEFORE rendering iframes (Chrome Web Store compliant)
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      await chrome.runtime.sendMessage({ action: 'REGISTER_STUDIO_TAB' });
+    }
+  } catch (err) {
+    console.warn('[SiteLens AI] Studio tab rule registration notice:', err);
+  }
   renderDeviceGrid();
   bindEvents();
 });

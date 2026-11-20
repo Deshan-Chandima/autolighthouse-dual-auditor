@@ -25,21 +25,86 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (!stored.settings) {
     await chrome.storage.local.set({ settings: DEFAULT_SETTINGS });
   }
-  await setupResponsiveIframeRules();
+  await cleanupLegacyDynamicRules();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
-  await setupResponsiveIframeRules();
+  await cleanupLegacyDynamicRules();
 });
 
 /**
- * Configures declarativeNetRequest rules to remove X-Frame-Options and restrictive CSP
- * ONLY for sub_frame requests initiated from within this extension's Responsive Matrix pages.
+ * Generates a deterministic positive integer rule ID scoped to a specific Chrome tab ID.
  */
-async function setupResponsiveIframeRules() {
+function getStudioRuleIdForTab(tabId) {
+  return 10000 + (Number(tabId) % 90000);
+}
+
+/**
+ * Registers a tab-scoped session DNR rule ONLY for the specified Responsive Studio tab.
+ * Never weakens security headers on normal browsing tabs (Chrome Web Store compliant).
+ */
+async function enableStudioIframeRuleForTab(tabId) {
+  if (!chrome.declarativeNetRequest || !Number.isInteger(tabId) || tabId < 0) return false;
+  const ruleId = getStudioRuleIdForTab(tabId);
+  try {
+    await chrome.declarativeNetRequest.updateSessionRules({
+      removeRuleIds: [ruleId],
+      addRules: [
+        {
+          id: ruleId,
+          priority: 1,
+          action: {
+            type: 'modifyHeaders',
+            responseHeaders: [
+              { header: 'X-Frame-Options', operation: 'remove' },
+              { header: 'Frame-Options', operation: 'remove' },
+              { header: 'Content-Security-Policy', operation: 'remove' },
+              { header: 'Cross-Origin-Opener-Policy', operation: 'remove' },
+              { header: 'Cross-Origin-Embedder-Policy', operation: 'remove' }
+            ]
+          },
+          condition: {
+            tabIds: [tabId],
+            resourceTypes: ['sub_frame']
+          }
+        }
+      ]
+    });
+    return true;
+  } catch (err) {
+    console.warn('[SiteLens AI] Could not register tab-scoped studio rule:', err);
+    return false;
+  }
+}
+
+/**
+ * Removes the tab-scoped session DNR rule immediately when the Studio tab closes or navigates away.
+ */
+async function disableStudioIframeRuleForTab(tabId) {
+  if (!chrome.declarativeNetRequest || !Number.isInteger(tabId) || tabId < 0) return;
+  const ruleId = getStudioRuleIdForTab(tabId);
+  try {
+    await chrome.declarativeNetRequest.updateSessionRules({
+      removeRuleIds: [ruleId]
+    });
+  } catch (_) {
+    // ignore if rule did not exist
+  }
+}
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  disableStudioIframeRuleForTab(tabId);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.url && !changeInfo.url.startsWith(chrome.runtime.getURL('responsive-matrix.html'))) {
+    disableStudioIframeRuleForTab(tabId);
+  }
+});
+
+async function cleanupLegacyDynamicRules() {
   if (!chrome.declarativeNetRequest) return;
   try {
-    // Clear any previous dynamic rules so the static ruleset in rules.json takes clean priority
     const currentRules = await chrome.declarativeNetRequest.getDynamicRules();
     const ruleIds = currentRules.map((r) => r.id);
     if (ruleIds.length > 0) {
@@ -66,6 +131,12 @@ function stringToDataUrl(content, mimeType = 'application/json') {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || !message.action) return false;
+
+  if (message.action === 'REGISTER_STUDIO_TAB') {
+    const tabId = sender?.tab?.id;
+    enableStudioIframeRuleForTab(tabId).then((ok) => sendResponse({ ok, tabId }));
+    return true; // async response
+  }
 
   if (message.action === 'SET_BADGE') {
     const { text = '', color = '#0ea5e9' } = message;
