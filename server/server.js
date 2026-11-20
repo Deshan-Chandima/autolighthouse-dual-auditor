@@ -26,9 +26,10 @@ async function getLighthouseDeps() {
   };
 }
 
+const IS_VERCEL = Boolean(process.env.VERCEL);
 const PORT = process.env.PORT ? Number(process.env.PORT) : 9876;
-const PUBLIC_CLOUD_MODE = process.env.PUBLIC_CLOUD_MODE === 'true';
-const DISABLE_LOCAL_LIGHTHOUSE = process.env.DISABLE_LOCAL_LIGHTHOUSE === 'true';
+const PUBLIC_CLOUD_MODE = process.env.PUBLIC_CLOUD_MODE === 'true' || IS_VERCEL;
+const DISABLE_LOCAL_LIGHTHOUSE = process.env.DISABLE_LOCAL_LIGHTHOUSE === 'true' || IS_VERCEL;
 const HOST = process.env.HOST || (PUBLIC_CLOUD_MODE ? '0.0.0.0' : '127.0.0.1');
 const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 60_000);
 const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 15);
@@ -607,12 +608,30 @@ app.post('/api/security-audit', rateLimitMiddleware, async (req, res) => {
   }
 });
 
-app.listen(PORT, HOST, () => {
-  console.log('==============================================================');
-  console.log(` SiteLens AI Engine v2.0.0 is ONLINE (${PUBLIC_CLOUD_MODE ? 'PUBLIC CLOUD MODE' : 'LOCAL MODE'})`);
-  console.log(` Listening at: http://${HOST}:${PORT}`);
-  console.log(` Health Check: /api/health`);
-  console.log(` Audit API:    POST /api/audit (${DISABLE_LOCAL_LIGHTHOUSE ? 'disabled - PSI mode' : 'enabled'})`);
-  console.log(` Security API: POST /api/security-audit (enabled${PUBLIC_CLOUD_MODE ? ', SSRF-guarded + rate-limited' : ''})`);
-  console.log('==============================================================');
+app.get('/', (req, res) => {
+  res.json({
+    ok: true,
+    service: 'SiteLens AI Cloud Security Engine',
+    version: '2.0.0',
+    mode: PUBLIC_CLOUD_MODE ? 'cloud' : 'local',
+    endpoints: {
+      health: '/api/health',
+      securityAudit: 'POST /api/security-audit'
+    },
+    repository: 'https://github.com/Deshan-Chandima/sitelens-ai'
+  });
 });
+
+if (!IS_VERCEL) {
+  app.listen(PORT, HOST, () => {
+    console.log('==============================================================');
+    console.log(` SiteLens AI Engine v2.0.0 is ONLINE (${PUBLIC_CLOUD_MODE ? 'PUBLIC CLOUD MODE' : 'LOCAL MODE'})`);
+    console.log(` Listening at: http://${HOST}:${PORT}`);
+    console.log(` Health Check: /api/health`);
+    console.log(` Audit API:    POST /api/audit (${DISABLE_LOCAL_LIGHTHOUSE ? 'disabled - PSI mode' : 'enabled'})`);
+    console.log(` Security API: POST /api/security-audit (enabled${PUBLIC_CLOUD_MODE ? ', SSRF-guarded + rate-limited' : ''})`);
+    console.log('==============================================================');
+  });
+}
+
+export default app;
