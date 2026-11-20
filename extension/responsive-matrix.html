@@ -3,20 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SiteLens AI — Multi-Device Live Responsive Matrix</title>
+  <title>SiteLens AI — Multi-Device Live Responsive Studio</title>
   <link rel="icon" type="image/png" href="icon32.png" />
   <link rel="stylesheet" href="responsive-matrix.css" />
 </head>
 <body class="theme-dark">
   <div class="matrix-app">
-    <!-- Top Studio Navigation Bar -->
+    <!-- Top Studio Command & Navigation Bar -->
     <header class="matrix-header">
       <div class="header-left">
         <div class="brand">
-          <img src="icon48.png" alt="SiteLens AI" class="brand-logo" />
+          <div class="brand-logo-wrap">
+            <img src="icon48.png" alt="SiteLens AI" class="brand-logo" />
+            <span class="brand-live-pulse" title="Live Studio Active"></span>
+          </div>
           <div class="brand-info">
-            <h1 class="brand-title">SiteLens AI</h1>
-            <span class="brand-subtitle">Live Responsive Matrix</span>
+            <div class="brand-title-row">
+              <h1 class="brand-title">SiteLens AI</h1>
+              <span class="studio-badge">STUDIO</span>
+            </div>
+            <span class="brand-subtitle">Multi-Device Live Matrix</span>
           </div>
         </div>
       </div>
@@ -24,74 +30,114 @@
       <div class="header-center">
         <form id="urlForm" class="url-bar-form">
           <div class="url-input-wrap">
-            <span class="url-prefix-icon">🌐</span>
+            <span class="url-lock-icon" title="HTTPS Secure Connection">
+              <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
             <input
               type="url"
               id="targetUrlInput"
               class="url-input"
-              placeholder="Enter website URL (e.g. https://example.com or http://localhost:3000)..."
+              placeholder="Enter site URL (e.g. https://example.com or http://localhost:3000)..."
               required
               autocomplete="off"
               spellcheck="false"
             />
-            <button type="submit" class="btn-navigate" title="Navigate all devices">
-              <span>Go</span>
+            <button type="submit" class="btn-navigate" title="Stream URL to all active devices (Enter)">
+              <span>Stream</span>
+              <kbd class="key-hint" aria-label="Enter">
+                <svg class="ui-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+              </kbd>
             </button>
           </div>
         </form>
       </div>
 
       <div class="header-right">
-        <!-- Zoom / Scale Controls -->
+        <!-- Zoom / Viewport Scaling HUD -->
         <div class="control-group">
           <span class="control-label">Scale:</span>
           <div class="segmented-control" id="scaleControl">
-            <button type="button" class="seg-btn" data-scale="auto">Fit</button>
-            <button type="button" class="seg-btn" data-scale="0.5">50%</button>
-            <button type="button" class="seg-btn active" data-scale="0.75">75%</button>
-            <button type="button" class="seg-btn" data-scale="1.0">100%</button>
+            <button type="button" class="seg-btn" data-scale="auto" title="Fit devices dynamically">Fit</button>
+            <button type="button" class="seg-btn" data-scale="0.5" title="Scale to 50%">50%</button>
+            <button type="button" class="seg-btn active" data-scale="0.75" title="Scale to 75%">75%</button>
+            <button type="button" class="seg-btn" data-scale="1.0" title="Scale to 100% (Actual Size)">100%</button>
           </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Studio Action Buttons -->
         <div class="action-buttons">
           <button type="button" id="btnManageDevices" class="action-btn" title="Add, edit, remove or reset device presets">
-            <span class="action-icon">⚙️</span>
-            <span class="btn-text">Devices</span>
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
+            <span class="btn-text">Presets</span>
           </button>
-          <button type="button" id="btnRotateAll" class="action-btn" title="Rotate all Mobile/Tablet devices (Portrait ↔ Landscape)">
-            <span class="action-icon">🔄</span>
-            <span class="btn-text">Rotate All</span>
+          <button type="button" id="btnRotateAll" class="action-btn" title="Rotate all Mobile/Tablet viewports (Portrait ↔ Landscape)">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            <span class="btn-text">Rotate</span>
           </button>
           <button type="button" id="btnReloadAll" class="action-btn" title="Reload all device frames">
-            <span class="action-icon">↺</span>
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
             <span class="btn-text">Reload</span>
           </button>
           <button type="button" id="btnThemeToggle" class="action-btn icon-only" title="Toggle Studio Theme (Dark / Light)">
-            <span class="action-icon" id="themeIcon">☀️</span>
+            <span class="action-icon" id="themeIcon">
+              <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            </span>
           </button>
-          <a id="btnOpenExternal" href="#" target="_blank" rel="noopener noreferrer" class="action-btn icon-only" title="Open Target Site in New Tab">
-            <span class="action-icon">↗</span>
+          <a id="btnOpenExternal" href="#" target="_blank" rel="noopener noreferrer" class="action-btn icon-only" title="Open Target Website in New Tab">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
           </a>
         </div>
       </div>
     </header>
 
-    <!-- Filter & Statistics Bar -->
+    <!-- Telemetry & Breakpoints Filter Sub-Bar -->
     <div class="sub-bar">
       <div class="sub-bar-left">
-        <span class="filter-title">Filter Devices:</span>
+        <span class="filter-title">Filter Viewports:</span>
         <div class="filter-pills" id="filterPills">
-          <button type="button" class="filter-pill active" data-filter="all">All Devices (<span id="countAll">7</span>)</button>
-          <button type="button" class="filter-pill" data-filter="mobile">📱 Mobile (<span id="countMobile">3</span>)</button>
-          <button type="button" class="filter-pill" data-filter="tablet">📟 Tablet (<span id="countTablet">2</span>)</button>
-          <button type="button" class="filter-pill" data-filter="desktop">🖥️ Desktop (<span id="countDesktop">2</span>)</button>
+          <button type="button" class="filter-pill active" data-filter="all">
+            <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+            <span>All Viewports (<span id="countAll" class="tabular">7</span>)</span>
+          </button>
+          <button type="button" class="filter-pill" data-filter="mobile">
+            <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+            <span>Mobile (<span id="countMobile" class="tabular">3</span>)</span>
+          </button>
+          <button type="button" class="filter-pill" data-filter="tablet">
+            <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
+            <span>Tablet (<span id="countTablet" class="tabular">2</span>)</span>
+          </button>
+          <button type="button" class="filter-pill" data-filter="desktop">
+            <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+            <span>Desktop (<span id="countDesktop" class="tabular">2</span>)</span>
+          </button>
         </div>
       </div>
       <div class="sub-bar-right">
-        <span class="live-url-indicator">
-          Auditing: <strong id="currentUrlDisplay">https://example.com</strong>
-        </span>
+        <!-- Layout Mode Switcher (Tiered Vertical Rows vs Horizontal Strip) -->
+        <div class="control-group layout-switcher-group">
+          <span class="control-label">Layout:</span>
+          <div class="segmented-control" id="layoutControl" role="group" aria-label="Canvas Layout Mode">
+            <button type="button" class="seg-btn active inline-btn" data-layout="rows" title="Tiered Breakpoint Rows (Natural Vertical Scroll)">
+              <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M21 9H3"/><path d="M21 15H3"/></svg>
+              <span>Rows</span>
+            </button>
+            <button type="button" class="seg-btn inline-btn" data-layout="strip" title="Single Horizontal Strip (Ultra-Wide Comparison)">
+              <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+              <span>Strip</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="live-telemetry">
+          <span class="telemetry-pill">
+            <span class="status-indicator-live"></span>
+            <span>Live Stream</span>
+          </span>
+          <span class="live-url-indicator">
+            Target: <strong id="currentUrlDisplay">https://example.com</strong>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -105,34 +151,44 @@
     <!-- Empty State / Welcome Screen -->
     <div class="empty-state hidden" id="emptyState">
       <div class="empty-card">
-        <div class="empty-icon">📱</div>
-        <h2>Enter a URL to Start Live Responsive Testing</h2>
-        <p>Preview and interact with your website side-by-side across mobile phones, tablets, and desktop resolutions.</p>
+        <div class="empty-icon-box">
+          <svg class="ui-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"/><path d="M10 19v-3.96 3.15"/><path d="M7 19h5"/><rect width="6" height="10" x="16" y="12" rx="2"/></svg>
+        </div>
+        <h2>No Devices Configured</h2>
+        <p>You have removed all devices. Click below to restore the factory default device fleet.</p>
+        <button type="button" class="btn-primary-sm inline-btn" id="emptyResetBtn" style="margin-top: 14px;">
+          <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>Restore Default Presets</span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Device Presets Manager Modal -->
+  <!-- Device Presets Manager Modal (Linear-Inspired Glassmorphic Dialog) -->
   <div class="modal-overlay hidden" id="deviceModalOverlay">
     <div class="modal-card">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <span class="modal-icon">⚙️</span>
+          <div class="modal-icon-badge">
+            <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"/><path d="M10 19v-3.96 3.15"/><path d="M7 19h5"/><rect width="6" height="10" x="16" y="12" rx="2"/></svg>
+          </div>
           <div>
             <h2 class="modal-title">Device Presets Manager</h2>
-            <p class="modal-sub">Add custom devices, edit dimensions, remove viewports or restore default presets.</p>
+            <p class="modal-sub">Add custom viewports, fine-tune CSS pixel dimensions, or restore factory presets.</p>
           </div>
         </div>
-        <button type="button" class="modal-close-btn" id="modalCloseBtn" title="Close modal">&times;</button>
+        <button type="button" class="modal-close-btn" id="modalCloseBtn" title="Close dialog (Esc)">&times;</button>
       </div>
 
       <!-- Modal Toolbar -->
       <div class="modal-toolbar">
-        <button type="button" id="btnOpenAddForm" class="btn-primary-sm">
-          <span>+ Add New Device</span>
+        <button type="button" id="btnOpenAddForm" class="btn-primary-sm inline-btn">
+          <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          <span>Add Custom Device</span>
         </button>
-        <button type="button" id="btnResetDefaults" class="btn-secondary-sm danger-text" title="Restore original 7 default device presets">
-          <span>↺ Reset to Defaults</span>
+        <button type="button" id="btnResetDefaults" class="btn-secondary-sm danger-text inline-btn" title="Restore original 7 default device presets">
+          <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>Reset to Defaults</span>
         </button>
       </div>
 
@@ -144,27 +200,27 @@
           <div class="form-grid">
             <div class="form-field">
               <label for="inputDevName">Device Name</label>
-              <input type="text" id="inputDevName" placeholder="e.g. Galaxy S24 Ultra" required autocomplete="off" />
+              <input type="text" id="inputDevName" placeholder="e.g. Samsung Galaxy S24 Ultra" required autocomplete="off" />
             </div>
             <div class="form-field">
               <label for="selectDevType">Category</label>
               <select id="selectDevType" required>
-                <option value="mobile">📱 Mobile</option>
-                <option value="tablet">📟 Tablet</option>
-                <option value="desktop">🖥️ Desktop</option>
+                <option value="mobile">Mobile Phone</option>
+                <option value="tablet">Tablet / Foldable</option>
+                <option value="desktop">Laptop / Desktop</option>
               </select>
             </div>
             <div class="form-field">
               <label for="inputDevWidth">Width (px)</label>
-              <input type="number" id="inputDevWidth" min="240" max="3840" placeholder="e.g. 412" required />
+              <input type="number" id="inputDevWidth" min="200" max="3840" placeholder="e.g. 412" required />
             </div>
             <div class="form-field">
               <label for="inputDevHeight">Height (px)</label>
-              <input type="number" id="inputDevHeight" min="240" max="3840" placeholder="e.g. 915" required />
+              <input type="number" id="inputDevHeight" min="200" max="3840" placeholder="e.g. 915" required />
             </div>
           </div>
           <div class="form-actions">
-            <button type="submit" class="btn-primary-sm" id="btnSaveDevice">Save Device</button>
+            <button type="submit" class="btn-primary-sm" id="btnSaveDevice">Save Device Preset</button>
             <button type="button" class="btn-secondary-sm" id="btnCancelForm">Cancel</button>
           </div>
         </form>
@@ -177,6 +233,6 @@
     </div>
   </div>
 
-  <script src="responsive-matrix.js"></script>
+  <script type="module" src="responsive-matrix.js"></script>
 </body>
 </html>

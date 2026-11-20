@@ -3,6 +3,8 @@
  * Supports adding custom devices, editing dimensions, deleting devices, and resetting to defaults.
  */
 
+import { renderIcon, getDeviceIconName } from './icons.js';
+
 const DEFAULT_DEVICE_PRESETS = [
   {
     id: 'iphone-se',
@@ -11,7 +13,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Mobile Small',
     width: 375,
     height: 667,
-    icon: '📱',
+    iconName: 'smartphone',
     scalePreset: 0.8
   },
   {
@@ -21,7 +23,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Mobile Standard',
     width: 390,
     height: 844,
-    icon: '📱',
+    iconName: 'smartphone',
     scalePreset: 0.75
   },
   {
@@ -31,7 +33,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Android Flagship',
     width: 412,
     height: 915,
-    icon: '📱',
+    iconName: 'smartphone',
     scalePreset: 0.7
   },
   {
@@ -41,7 +43,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Tablet Portrait',
     width: 768,
     height: 1024,
-    icon: '📟',
+    iconName: 'tablet',
     scalePreset: 0.6
   },
   {
@@ -51,7 +53,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Tablet Landscape',
     width: 1024,
     height: 768,
-    icon: '📟',
+    iconName: 'tablet',
     scalePreset: 0.55
   },
   {
@@ -61,7 +63,7 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Laptop',
     width: 1280,
     height: 800,
-    icon: '💻',
+    iconName: 'laptop',
     scalePreset: 0.48
   },
   {
@@ -71,9 +73,15 @@ const DEFAULT_DEVICE_PRESETS = [
     category: 'Desktop',
     width: 1440,
     height: 900,
-    icon: '🖥️',
+    iconName: 'monitor',
     scalePreset: 0.45
   }
+];
+
+const TIER_META = [
+  { key: 'mobile', title: 'Mobile Breakpoints', iconName: 'smartphone' },
+  { key: 'tablet', title: 'Tablet Breakpoints', iconName: 'tablet' },
+  { key: 'desktop', title: 'Desktop & Laptop Breakpoints', iconName: 'monitor' }
 ];
 
 // State
@@ -81,6 +89,7 @@ let currentDevices = loadDevicesFromStorage();
 let currentUrl = 'https://example.com';
 let activeFilter = 'all';
 let currentGlobalScale = 0.75; // 'auto' | 0.5 | 0.75 | 1.0
+let currentLayoutMode = localStorage.getItem('sitelens_layout_mode') || 'rows'; // 'rows' | 'strip'
 let deviceStates = {}; // id -> { width, height, isLandscape }
 
 // DOM Elements
@@ -94,9 +103,12 @@ const els = {
   btnThemeToggle: document.getElementById('btnThemeToggle'),
   themeIcon: document.getElementById('themeIcon'),
   scaleControl: document.getElementById('scaleControl'),
+  layoutControl: document.getElementById('layoutControl'),
   filterPills: document.getElementById('filterPills'),
+  matrixCanvas: document.getElementById('matrixCanvas'),
   deviceGrid: document.getElementById('deviceGrid'),
   emptyState: document.getElementById('emptyState'),
+  emptyResetBtn: document.getElementById('emptyResetBtn'),
   countAll: document.getElementById('countAll'),
   countMobile: document.getElementById('countMobile'),
   countTablet: document.getElementById('countTablet'),
@@ -124,10 +136,30 @@ document.addEventListener('DOMContentLoaded', () => {
   initUrlFromParams();
   initTheme();
   initDeviceStates();
+  applyLayoutMode(currentLayoutMode);
   renderDeviceCounts();
   renderDeviceGrid();
   bindEvents();
 });
+
+function applyLayoutMode(mode) {
+  const norm = mode === 'strip' ? 'strip' : 'rows';
+  currentLayoutMode = norm;
+  localStorage.setItem('sitelens_layout_mode', norm);
+
+  if (els.deviceGrid) {
+    els.deviceGrid.classList.toggle('layout-rows', norm === 'rows');
+    els.deviceGrid.classList.toggle('layout-strip', norm === 'strip');
+  }
+  if (els.matrixCanvas) {
+    els.matrixCanvas.classList.toggle('canvas-strip-mode', norm === 'strip');
+  }
+  if (els.layoutControl) {
+    els.layoutControl.querySelectorAll('.seg-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.layout === norm);
+    });
+  }
+}
 
 function loadDevicesFromStorage() {
   try {
@@ -174,11 +206,11 @@ function applyTheme(theme) {
   if (theme === 'light') {
     document.body.classList.remove('theme-dark');
     document.body.classList.add('theme-light');
-    els.themeIcon.textContent = '🌙';
+    els.themeIcon.innerHTML = renderIcon('moon', { size: 14 });
   } else {
     document.body.classList.remove('theme-light');
     document.body.classList.add('theme-dark');
-    els.themeIcon.textContent = '☀️';
+    els.themeIcon.innerHTML = renderIcon('sun', { size: 14 });
   }
   localStorage.setItem('sitelens_theme', theme);
 }
@@ -213,6 +245,128 @@ function getScaleForDevice(dev) {
   return Number(currentGlobalScale) || 0.75;
 }
 
+function calculateAspectRatio(w, h) {
+  const ratio = (w / h);
+  if (Math.abs(ratio - 9/19.5) < 0.03 || Math.abs(ratio - 19.5/9) < 0.03) return '19.5:9';
+  if (Math.abs(ratio - 9/20) < 0.03 || Math.abs(ratio - 20/9) < 0.03) return '20:9';
+  if (Math.abs(ratio - 9/16) < 0.03 || Math.abs(ratio - 16/9) < 0.03) return '16:9';
+  if (Math.abs(ratio - 3/4) < 0.03 || Math.abs(ratio - 4/3) < 0.03) return '4:3';
+  if (Math.abs(ratio - 10/16) < 0.03 || Math.abs(ratio - 16/10) < 0.03) return '16:10';
+  return `${Math.round(ratio * 10) / 10}:1`;
+}
+
+function computeTierWidthRange(devicesInTier) {
+  const widths = devicesInTier.map((d) => (deviceStates[d.id]?.width ?? d.width));
+  if (widths.length === 0) return '';
+  const minW = Math.min(...widths);
+  const maxW = Math.max(...widths);
+  return minW === maxW ? `${minW}px` : `${minW}px – ${maxW}px`;
+}
+
+function updateTierRangeLabel(tierKey) {
+  const rangeEl = document.getElementById(`tierRange-${tierKey}`);
+  if (!rangeEl) return;
+  const tierDevices = currentDevices.filter((d) => d.type === tierKey);
+  rangeEl.textContent = computeTierWidthRange(tierDevices);
+}
+
+function createDeviceCardElement(dev) {
+  const state = deviceStates[dev.id] || {
+    width: dev.width,
+    height: dev.height,
+    isLandscape: dev.width > dev.height
+  };
+  deviceStates[dev.id] = state;
+
+  const scale = getScaleForDevice(dev);
+  const scaledWidth = Math.round(state.width * scale);
+  const scaledHeight = Math.round(state.height * scale);
+  const aspect = calculateAspectRatio(state.width, state.height);
+
+  const card = document.createElement('div');
+  card.className = `device-card`;
+  card.id = `card-${dev.id}`;
+  card.dataset.id = dev.id;
+  card.dataset.type = dev.type;
+
+  if (activeFilter !== 'all' && dev.type !== activeFilter) {
+    card.classList.add('hidden');
+  }
+
+  // Top Header of card with Rotate, Reload, Edit, Delete, Isolate actions
+  const devIconName = getDeviceIconName(dev);
+  const header = document.createElement('div');
+  header.className = 'device-header';
+  header.innerHTML = `
+    <div class="device-title-wrap">
+      <div class="device-name-row">
+        <span class="device-icon-badge" data-type="${dev.type}">${renderIcon(devIconName, { size: 13 })}</span>
+        <span class="device-name">${dev.name}</span>
+        <span class="device-aspect-tag">${aspect}</span>
+      </div>
+      <span class="device-dims" id="dims-${dev.id}">${state.width} × ${state.height} px (${state.isLandscape ? 'Landscape' : 'Portrait'}) • <span class="tabular">${Math.round(scale * 100)}%</span></span>
+    </div>
+    <div class="device-actions">
+      <button type="button" class="device-btn btn-rotate" title="Rotate device orientation" data-id="${dev.id}">${renderIcon('rotateCw', { size: 13 })}</button>
+      <button type="button" class="device-btn btn-reload" title="Reload this frame" data-id="${dev.id}">${renderIcon('refreshCw', { size: 13 })}</button>
+      <button type="button" class="device-btn btn-edit-device" title="Edit this device" data-id="${dev.id}">${renderIcon('pencil', { size: 13 })}</button>
+      <button type="button" class="device-btn btn-delete-device" title="Delete this device" data-id="${dev.id}">${renderIcon('trash2', { size: 13 })}</button>
+      <button type="button" class="device-btn btn-isolate" title="Open in separate tab" data-id="${dev.id}">${renderIcon('arrowUpRight', { size: 13 })}</button>
+    </div>
+  `;
+
+  // Outer Bezel Shell
+  const bezel = document.createElement('div');
+  bezel.className = 'device-bezel';
+
+  if (dev.type === 'mobile') {
+    const notch = document.createElement('div');
+    notch.className = 'notch-pill';
+    notch.innerHTML = `<span class="notch-camera-dot"></span>`;
+    bezel.appendChild(notch);
+  }
+
+  // Screen Container
+  const screenOuter = document.createElement('div');
+  screenOuter.className = 'screen-outer-container';
+  screenOuter.id = `screenOuter-${dev.id}`;
+  screenOuter.style.width = `${scaledWidth}px`;
+  screenOuter.style.height = `${scaledHeight}px`;
+
+  const screenScaled = document.createElement('div');
+  screenScaled.className = 'screen-scaled-wrapper';
+  screenScaled.id = `screenScaled-${dev.id}`;
+  screenScaled.style.width = `${state.width}px`;
+  screenScaled.style.height = `${state.height}px`;
+  screenScaled.style.transform = `scale(${scale})`;
+
+  const iframe = document.createElement('iframe');
+  iframe.className = 'device-iframe';
+  iframe.id = `iframe-${dev.id}`;
+  iframe.src = currentUrl;
+  iframe.title = `${dev.name} Viewport`;
+  iframe.loading = 'lazy';
+
+  screenScaled.appendChild(iframe);
+  screenOuter.appendChild(screenScaled);
+  bezel.appendChild(screenOuter);
+
+  if (dev.type === 'mobile') {
+    const homeBar = document.createElement('div');
+    homeBar.className = 'home-bar';
+    bezel.appendChild(homeBar);
+  } else if (dev.type === 'desktop') {
+    const chin = document.createElement('div');
+    chin.className = 'desktop-chin';
+    chin.innerHTML = `<span class="desktop-logo-dot"></span>`;
+    bezel.appendChild(chin);
+  }
+
+  card.appendChild(header);
+  card.appendChild(bezel);
+  return card;
+}
+
 function renderDeviceGrid() {
   els.deviceGrid.innerHTML = '';
 
@@ -222,98 +376,36 @@ function renderDeviceGrid() {
   }
   els.emptyState.classList.add('hidden');
 
-  for (const dev of currentDevices) {
-    const state = deviceStates[dev.id] || {
-      width: dev.width,
-      height: dev.height,
-      isLandscape: dev.width > dev.height
-    };
-    deviceStates[dev.id] = state;
+  for (const tier of TIER_META) {
+    const tierDevices = currentDevices.filter((d) => d.type === tier.key);
+    if (tierDevices.length === 0) continue;
 
-    const scale = getScaleForDevice(dev);
-    const scaledWidth = Math.round(state.width * scale);
-    const scaledHeight = Math.round(state.height * scale);
-
-    const card = document.createElement('div');
-    card.className = `device-card`;
-    card.id = `card-${dev.id}`;
-    card.dataset.id = dev.id;
-    card.dataset.type = dev.type;
-
-    if (activeFilter !== 'all' && dev.type !== activeFilter) {
-      card.classList.add('hidden');
+    const section = document.createElement('section');
+    section.className = 'tier-section';
+    section.dataset.tier = tier.key;
+    if (activeFilter !== 'all' && activeFilter !== tier.key) {
+      section.classList.add('hidden');
     }
 
-    // Top Header of card with Rotate, Reload, Edit, Delete, Isolate actions
-    const header = document.createElement('div');
-    header.className = 'device-header';
-    header.innerHTML = `
-      <div class="device-title-wrap">
-        <span class="device-name">
-          <span>${dev.icon || (dev.type === 'mobile' ? '📱' : dev.type === 'tablet' ? '📟' : '🖥️')}</span>
-          <span>${dev.name}</span>
-        </span>
-        <span class="device-dims" id="dims-${dev.id}">${state.width} × ${state.height} px (${state.isLandscape ? 'Landscape' : 'Portrait'}) • ${Math.round(scale * 100)}%</span>
-      </div>
-      <div class="device-actions">
-        <button type="button" class="device-btn btn-rotate" title="Rotate device orientation" data-id="${dev.id}">🔄</button>
-        <button type="button" class="device-btn btn-reload" title="Reload this frame" data-id="${dev.id}">↺</button>
-        <button type="button" class="device-btn btn-edit-device" title="Edit this device" data-id="${dev.id}">✏️</button>
-        <button type="button" class="device-btn btn-delete-device" title="Delete this device" data-id="${dev.id}">🗑️</button>
-        <button type="button" class="device-btn btn-isolate" title="Open in separate tab" data-id="${dev.id}">↗</button>
-      </div>
+    const tierHeader = document.createElement('div');
+    tierHeader.className = 'tier-header';
+    tierHeader.innerHTML = `
+      <span class="tier-icon-box" data-tier="${tier.key}">${renderIcon(tier.iconName, { size: 14 })}</span>
+      <h2 class="tier-title">${tier.title}</h2>
+      <span class="tier-count-badge tabular">${tierDevices.length}</span>
+      <span class="tier-range-pill tabular" id="tierRange-${tier.key}">${computeTierWidthRange(tierDevices)}</span>
+      <span class="tier-divider"></span>
     `;
 
-    // Outer Bezel Shell
-    const bezel = document.createElement('div');
-    bezel.className = 'device-bezel';
-
-    if (dev.type === 'mobile') {
-      const notch = document.createElement('div');
-      notch.className = 'notch-pill';
-      notch.innerHTML = `<span class="notch-camera-dot"></span>`;
-      bezel.appendChild(notch);
+    const row = document.createElement('div');
+    row.className = 'tier-devices-row';
+    for (const dev of tierDevices) {
+      row.appendChild(createDeviceCardElement(dev));
     }
 
-    // Screen Container
-    const screenOuter = document.createElement('div');
-    screenOuter.className = 'screen-outer-container';
-    screenOuter.id = `screenOuter-${dev.id}`;
-    screenOuter.style.width = `${scaledWidth}px`;
-    screenOuter.style.height = `${scaledHeight}px`;
-
-    const screenScaled = document.createElement('div');
-    screenScaled.className = 'screen-scaled-wrapper';
-    screenScaled.id = `screenScaled-${dev.id}`;
-    screenScaled.style.width = `${state.width}px`;
-    screenScaled.style.height = `${state.height}px`;
-    screenScaled.style.transform = `scale(${scale})`;
-
-    const iframe = document.createElement('iframe');
-    iframe.className = 'device-iframe';
-    iframe.id = `iframe-${dev.id}`;
-    iframe.src = currentUrl;
-    iframe.title = `${dev.name} Viewport`;
-    iframe.loading = 'lazy';
-
-    screenScaled.appendChild(iframe);
-    screenOuter.appendChild(screenScaled);
-    bezel.appendChild(screenOuter);
-
-    if (dev.type === 'mobile') {
-      const homeBar = document.createElement('div');
-      homeBar.className = 'home-bar';
-      bezel.appendChild(homeBar);
-    } else if (dev.type === 'desktop') {
-      const chin = document.createElement('div');
-      chin.className = 'desktop-chin';
-      chin.innerHTML = `<span class="desktop-logo-dot"></span>`;
-      bezel.appendChild(chin);
-    }
-
-    card.appendChild(header);
-    card.appendChild(bezel);
-    els.deviceGrid.appendChild(card);
+    section.appendChild(tierHeader);
+    section.appendChild(row);
+    els.deviceGrid.appendChild(section);
   }
 
   bindCardActionEvents();
@@ -345,6 +437,8 @@ function updateDeviceCardLayout(devId) {
     screenScaled.style.height = `${state.height}px`;
     screenScaled.style.transform = `scale(${scale})`;
   }
+
+  updateTierRangeLabel(dev.type);
 }
 
 function updateAllDeviceScales() {
@@ -461,7 +555,7 @@ function saveDeviceFromForm() {
     return;
   }
 
-  const icon = type === 'mobile' ? '📱' : type === 'tablet' ? '📟' : '🖥️';
+  const iconName = type === 'mobile' ? 'smartphone' : type === 'tablet' ? 'tablet' : 'monitor';
   const category = type === 'mobile' ? 'Mobile' : type === 'tablet' ? 'Tablet' : 'Desktop';
 
   if (editId) {
@@ -475,7 +569,7 @@ function saveDeviceFromForm() {
         category,
         width,
         height,
-        icon
+        iconName
       };
       deviceStates[editId] = {
         width,
@@ -493,7 +587,7 @@ function saveDeviceFromForm() {
       category,
       width,
       height,
-      icon,
+      iconName,
       scalePreset: type === 'mobile' ? 0.75 : type === 'tablet' ? 0.6 : 0.48
     };
     currentDevices.push(newDevice);
@@ -555,16 +649,16 @@ function renderModalDeviceList() {
 
     item.innerHTML = `
       <div class="modal-device-meta">
-        <span class="modal-dev-icon">${dev.icon || '📱'}</span>
+        <span class="modal-dev-icon-box" data-type="${dev.type}">${renderIcon(getDeviceIconName(dev), { size: 15 })}</span>
         <div>
           <span class="modal-dev-name">${dev.name}</span>
-          <span class="modal-dev-dims">${dev.width} × ${dev.height} px</span>
+          <span class="modal-dev-dims tabular">${dev.width} × ${dev.height} px</span>
         </div>
         <span class="modal-dev-badge">${dev.category || dev.type}</span>
       </div>
       <div class="modal-dev-actions">
-        <button type="button" class="btn-item-action btn-modal-edit" data-id="${dev.id}">✏️ Edit</button>
-        <button type="button" class="btn-item-action delete-action btn-modal-delete" data-id="${dev.id}">🗑️ Delete</button>
+        <button type="button" class="btn-item-action btn-modal-edit" data-id="${dev.id}">${renderIcon('pencil', { size: 12 })}<span>Edit</span></button>
+        <button type="button" class="btn-item-action delete-action btn-modal-delete" data-id="${dev.id}">${renderIcon('trash2', { size: 12 })}<span>Delete</span></button>
       </div>
     `;
 
@@ -609,12 +703,25 @@ function bindEvents() {
     });
   });
 
+  // Layout mode switcher (Tiered Vertical Rows vs Horizontal Strip)
+  els.layoutControl?.querySelectorAll('.seg-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      applyLayoutMode(btn.dataset.layout);
+    });
+  });
+
   // Filter pills
   els.filterPills.querySelectorAll('.filter-pill').forEach((pill) => {
     pill.addEventListener('click', () => {
       els.filterPills.querySelectorAll('.filter-pill').forEach((p) => p.classList.remove('active'));
       pill.classList.add('active');
       activeFilter = pill.dataset.filter || 'all';
+
+      document.querySelectorAll('.tier-section').forEach((sec) => {
+        const tier = sec.dataset.tier;
+        const shouldShow = activeFilter === 'all' || tier === activeFilter;
+        sec.classList.toggle('hidden', !shouldShow);
+      });
 
       document.querySelectorAll('.device-card').forEach((card) => {
         const type = card.dataset.type;
@@ -668,6 +775,16 @@ function bindEvents() {
 
   els.btnResetDefaults?.addEventListener('click', () => {
     resetDevicesToDefaults();
+  });
+
+  els.emptyResetBtn?.addEventListener('click', () => {
+    resetDevicesToDefaults();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && els.deviceModalOverlay && !els.deviceModalOverlay.classList.contains('hidden')) {
+      closeDeviceModal();
+    }
   });
 }
 
