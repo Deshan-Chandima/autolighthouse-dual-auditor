@@ -484,92 +484,103 @@
          TAB 3: RESPONSIVE MATRIX LAUNCHER PANEL
          ====================================================================== -->
     <div id="responsiveTabPanel" class="tab-panel hidden">
-      <!-- Responsive Matrix Info Card -->
-      <section class="card config-card">
-        <div class="section-header">
-          <span class="section-label">Multi-Device Live Grid</span>
-          <span class="section-hint">Instant Side-by-Side Frames</span>
+      <!-- Responsive Studio Hero & Bento Grid -->
+      <section class="card config-card responsive-hero-card">
+        <div class="res-studio-hero">
+          <div class="res-hero-badge">
+            <span class="res-badge-dot"></span>
+            <span>MULTI-DEVICE VIEWPORT SUITE</span>
+          </div>
+          <h2 class="res-hero-title">Live Responsive Matrix Studio</h2>
+          <p class="res-hero-desc">
+            Test layout responsiveness, overflow bugs, and CSS media query breakpoints simultaneously across standard phone, tablet, and desktop viewports.
+          </p>
         </div>
 
-        <p class="sec-desc">
-          Preview and test layout responsiveness, horizontal overflows, and breakpoint rendering live across standard mobile, tablet, and desktop devices simultaneously in a full-screen studio view.
-        </p>
+        <!-- Bento Grid: Device Categories & Dimensions -->
+        <div class="res-bento-grid">
+          <!-- Mobile Bento Tile -->
+          <div class="res-bento-tile">
+            <div class="bento-tile-header">
+              <span class="bento-icon">📱</span>
+              <span class="bento-category">Mobile Fleet</span>
+              <span class="bento-tag">3 Devices</span>
+            </div>
+            <div class="bento-chips-list">
+              <span class="bento-chip" title="iPhone 14 / 15 / 16">
+                <strong>iPhone 16:</strong> <span class="tabular">390×844</span>
+              </span>
+              <span class="bento-chip" title="Google Pixel 7 / Galaxy S23">
+                <strong>Pixel 7:</strong> <span class="tabular">412×915</span>
+              </span>
+              <span class="bento-chip" title="iPhone SE 3rd Gen">
+                <strong>Compact:</strong> <span class="tabular">375×667</span>
+              </span>
+            </div>
+          </div>
 
-        <!-- Device Coverage Grid Badges -->
-        <div class="responsive-presets-grid">
-          <div class="res-preset-badge">
-            <span class="res-icon">📱</span>
-            <div class="res-info">
-              <span class="res-name">iPhone SE</span>
-              <span class="res-res">375 × 667</span>
+          <!-- Tablet Bento Tile -->
+          <div class="res-bento-tile">
+            <div class="bento-tile-header">
+              <span class="bento-icon">📟</span>
+              <span class="bento-category">Tablet &amp; Foldable</span>
+              <span class="bento-tag">2 Devices</span>
+            </div>
+            <div class="bento-chips-list">
+              <span class="bento-chip" title="iPad Mini Portrait">
+                <strong>iPad Mini:</strong> <span class="tabular">768×1024</span>
+              </span>
+              <span class="bento-chip" title="iPad Pro 11 Landscape">
+                <strong>iPad Pro 11":</strong> <span class="tabular">1024×768</span>
+              </span>
             </div>
           </div>
-          <div class="res-preset-badge">
-            <span class="res-icon">📱</span>
-            <div class="res-info">
-              <span class="res-name">iPhone 15</span>
-              <span class="res-res">390 × 844</span>
+
+          <!-- Desktop Bento Tile -->
+          <div class="res-bento-tile full-span">
+            <div class="bento-tile-header">
+              <span class="bento-icon">🖥️</span>
+              <span class="bento-category">Laptops &amp; Desktops</span>
+              <span class="bento-tag">2 Devices</span>
             </div>
-          </div>
-          <div class="res-preset-badge">
-            <span class="res-icon">📱</span>
-            <div class="res-info">
-              <span class="res-name">Pixel 7</span>
-              <span class="res-res">412 × 915</span>
-            </div>
-          </div>
-          <div class="res-preset-badge">
-            <span class="res-icon">📟</span>
-            <div class="res-info">
-              <span class="res-name">iPad Mini</span>
-              <span class="res-res">768 × 1024</span>
-            </div>
-          </div>
-          <div class="res-preset-badge">
-            <span class="res-icon">📟</span>
-            <div class="res-info">
-              <span class="res-name">iPad Pro 11"</span>
-              <span class="res-res">1024 × 768</span>
-            </div>
-          </div>
-          <div class="res-preset-badge">
-            <span class="res-icon">💻</span>
-            <div class="res-info">
-              <span class="res-name">Laptop 13"</span>
-              <span class="res-res">1280 × 800</span>
-            </div>
-          </div>
-          <div class="res-preset-badge">
-            <span class="res-icon">🖥️</span>
-            <div class="res-info">
-              <span class="res-name">Desktop</span>
-              <span class="res-res">1440 × 900</span>
+            <div class="bento-chips-list horizontal">
+              <span class="bento-chip" title="MacBook Air / 13-inch Laptop">
+                <strong>Laptop 13":</strong> <span class="tabular">1280×800 px</span>
+              </span>
+              <span class="bento-chip" title="Standard 1080p Desktop">
+                <strong>Desktop:</strong> <span class="tabular">1440×900 px</span>
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- Highlights feature list -->
-        <div class="res-feature-list">
-          <div class="res-feature-item">
-            <span class="res-feat-icon">⚡</span>
-            <span>Real-time Interactive Live Scrolling &amp; Testing</span>
+        <!-- Studio Highlights Strip -->
+        <div class="res-features-strip">
+          <div class="res-feat-pill" title="Synchronized live interaction and scrolling">
+            <span class="feat-bullet">⚡</span>
+            <span>Live Scroll Sync</span>
           </div>
-          <div class="res-feature-item">
-            <span class="res-feat-icon">🔄</span>
-            <span>1-Click Orientation Swap (Portrait ↔ Landscape)</span>
+          <div class="res-feat-pill" title="Flip viewports between Portrait and Landscape">
+            <span class="feat-bullet">🔄</span>
+            <span>Instant Rotation</span>
           </div>
-          <div class="res-feature-item">
-            <span class="res-feat-icon">🛡️</span>
-            <span>Automatic X-Frame-Options &amp; CSP header bypass</span>
+          <div class="res-feat-pill" title="Add, edit, or remove custom viewport resolutions">
+            <span class="feat-bullet">⚙️</span>
+            <span>Custom Devices</span>
+          </div>
+          <div class="res-feat-pill" title="Automatic bypass of X-Frame-Options and CSP">
+            <span class="feat-bullet">🛡️</span>
+            <span>Anti-Frame Bypass</span>
           </div>
         </div>
       </section>
 
-      <!-- Primary Action Button -->
+      <!-- Primary Action CTA -->
       <div class="action-bar">
         <button type="button" id="launchMatrixBtn" class="primary-btn launch-matrix-btn">
           <span class="btn-icon">🚀</span>
-          <span>Launch Multi-Device Live Matrix</span>
+          <span>Launch Live Responsive Studio</span>
+          <span class="btn-badge-sub">7 Screens</span>
         </button>
       </div>
     </div>

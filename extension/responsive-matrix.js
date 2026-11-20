@@ -97,6 +97,7 @@ const els = {
   filterPills: document.getElementById('filterPills'),
   deviceGrid: document.getElementById('deviceGrid'),
   emptyState: document.getElementById('emptyState'),
+  emptyResetBtn: document.getElementById('emptyResetBtn'),
   countAll: document.getElementById('countAll'),
   countMobile: document.getElementById('countMobile'),
   countTablet: document.getElementById('countTablet'),
@@ -213,6 +214,16 @@ function getScaleForDevice(dev) {
   return Number(currentGlobalScale) || 0.75;
 }
 
+function calculateAspectRatio(w, h) {
+  const ratio = (w / h);
+  if (Math.abs(ratio - 9/19.5) < 0.03 || Math.abs(ratio - 19.5/9) < 0.03) return '19.5:9';
+  if (Math.abs(ratio - 9/20) < 0.03 || Math.abs(ratio - 20/9) < 0.03) return '20:9';
+  if (Math.abs(ratio - 9/16) < 0.03 || Math.abs(ratio - 16/9) < 0.03) return '16:9';
+  if (Math.abs(ratio - 3/4) < 0.03 || Math.abs(ratio - 4/3) < 0.03) return '4:3';
+  if (Math.abs(ratio - 10/16) < 0.03 || Math.abs(ratio - 16/10) < 0.03) return '16:10';
+  return `${Math.round(ratio * 10) / 10}:1`;
+}
+
 function renderDeviceGrid() {
   els.deviceGrid.innerHTML = '';
 
@@ -233,6 +244,7 @@ function renderDeviceGrid() {
     const scale = getScaleForDevice(dev);
     const scaledWidth = Math.round(state.width * scale);
     const scaledHeight = Math.round(state.height * scale);
+    const aspect = calculateAspectRatio(state.width, state.height);
 
     const card = document.createElement('div');
     card.className = `device-card`;
@@ -249,11 +261,14 @@ function renderDeviceGrid() {
     header.className = 'device-header';
     header.innerHTML = `
       <div class="device-title-wrap">
-        <span class="device-name">
-          <span>${dev.icon || (dev.type === 'mobile' ? '📱' : dev.type === 'tablet' ? '📟' : '🖥️')}</span>
-          <span>${dev.name}</span>
-        </span>
-        <span class="device-dims" id="dims-${dev.id}">${state.width} × ${state.height} px (${state.isLandscape ? 'Landscape' : 'Portrait'}) • ${Math.round(scale * 100)}%</span>
+        <div class="device-name-row">
+          <span class="device-name">
+            <span>${dev.icon || (dev.type === 'mobile' ? '📱' : dev.type === 'tablet' ? '📟' : '🖥️')}</span>
+            <span>${dev.name}</span>
+          </span>
+          <span class="device-aspect-tag">${aspect}</span>
+        </div>
+        <span class="device-dims" id="dims-${dev.id}">${state.width} × ${state.height} px (${state.isLandscape ? 'Landscape' : 'Portrait'}) • <span class="tabular">${Math.round(scale * 100)}%</span></span>
       </div>
       <div class="device-actions">
         <button type="button" class="device-btn btn-rotate" title="Rotate device orientation" data-id="${dev.id}">🔄</button>
@@ -668,6 +683,16 @@ function bindEvents() {
 
   els.btnResetDefaults?.addEventListener('click', () => {
     resetDevicesToDefaults();
+  });
+
+  els.emptyResetBtn?.addEventListener('click', () => {
+    resetDevicesToDefaults();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && els.deviceModalOverlay && !els.deviceModalOverlay.classList.contains('hidden')) {
+      closeDeviceModal();
+    }
   });
 }
 

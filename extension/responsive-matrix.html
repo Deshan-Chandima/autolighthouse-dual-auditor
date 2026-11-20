@@ -3,20 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SiteLens AI — Multi-Device Live Responsive Matrix</title>
+  <title>SiteLens AI — Multi-Device Live Responsive Studio</title>
   <link rel="icon" type="image/png" href="icon32.png" />
   <link rel="stylesheet" href="responsive-matrix.css" />
 </head>
 <body class="theme-dark">
   <div class="matrix-app">
-    <!-- Top Studio Navigation Bar -->
+    <!-- Top Studio Command & Navigation Bar -->
     <header class="matrix-header">
       <div class="header-left">
         <div class="brand">
-          <img src="icon48.png" alt="SiteLens AI" class="brand-logo" />
+          <div class="brand-logo-wrap">
+            <img src="icon48.png" alt="SiteLens AI" class="brand-logo" />
+            <span class="brand-live-pulse" title="Live Studio Active"></span>
+          </div>
           <div class="brand-info">
-            <h1 class="brand-title">SiteLens AI</h1>
-            <span class="brand-subtitle">Live Responsive Matrix</span>
+            <div class="brand-title-row">
+              <h1 class="brand-title">SiteLens AI</h1>
+              <span class="studio-badge">STUDIO</span>
+            </div>
+            <span class="brand-subtitle">Multi-Device Live Matrix</span>
           </div>
         </div>
       </div>
@@ -24,74 +30,83 @@
       <div class="header-center">
         <form id="urlForm" class="url-bar-form">
           <div class="url-input-wrap">
-            <span class="url-prefix-icon">🌐</span>
+            <span class="url-lock-icon" title="HTTPS Secure Connection">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
             <input
               type="url"
               id="targetUrlInput"
               class="url-input"
-              placeholder="Enter website URL (e.g. https://example.com or http://localhost:3000)..."
+              placeholder="Enter site URL (e.g. https://example.com or http://localhost:3000)..."
               required
               autocomplete="off"
               spellcheck="false"
             />
-            <button type="submit" class="btn-navigate" title="Navigate all devices">
-              <span>Go</span>
+            <button type="submit" class="btn-navigate" title="Stream URL to all active devices (Enter)">
+              <span>Stream</span>
+              <kbd class="key-hint">↵</kbd>
             </button>
           </div>
         </form>
       </div>
 
       <div class="header-right">
-        <!-- Zoom / Scale Controls -->
+        <!-- Zoom / Viewport Scaling HUD -->
         <div class="control-group">
           <span class="control-label">Scale:</span>
           <div class="segmented-control" id="scaleControl">
-            <button type="button" class="seg-btn" data-scale="auto">Fit</button>
-            <button type="button" class="seg-btn" data-scale="0.5">50%</button>
-            <button type="button" class="seg-btn active" data-scale="0.75">75%</button>
-            <button type="button" class="seg-btn" data-scale="1.0">100%</button>
+            <button type="button" class="seg-btn" data-scale="auto" title="Fit devices dynamically">Fit</button>
+            <button type="button" class="seg-btn" data-scale="0.5" title="Scale to 50%">50%</button>
+            <button type="button" class="seg-btn active" data-scale="0.75" title="Scale to 75%">75%</button>
+            <button type="button" class="seg-btn" data-scale="1.0" title="Scale to 100% (Actual Size)">100%</button>
           </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Studio Action Buttons -->
         <div class="action-buttons">
           <button type="button" id="btnManageDevices" class="action-btn" title="Add, edit, remove or reset device presets">
-            <span class="action-icon">⚙️</span>
-            <span class="btn-text">Devices</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="btn-text">Presets</span>
           </button>
-          <button type="button" id="btnRotateAll" class="action-btn" title="Rotate all Mobile/Tablet devices (Portrait ↔ Landscape)">
-            <span class="action-icon">🔄</span>
-            <span class="btn-text">Rotate All</span>
+          <button type="button" id="btnRotateAll" class="action-btn" title="Rotate all Mobile/Tablet viewports (Portrait ↔ Landscape)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+            <span class="btn-text">Rotate</span>
           </button>
           <button type="button" id="btnReloadAll" class="action-btn" title="Reload all device frames">
-            <span class="action-icon">↺</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
             <span class="btn-text">Reload</span>
           </button>
           <button type="button" id="btnThemeToggle" class="action-btn icon-only" title="Toggle Studio Theme (Dark / Light)">
             <span class="action-icon" id="themeIcon">☀️</span>
           </button>
-          <a id="btnOpenExternal" href="#" target="_blank" rel="noopener noreferrer" class="action-btn icon-only" title="Open Target Site in New Tab">
-            <span class="action-icon">↗</span>
+          <a id="btnOpenExternal" href="#" target="_blank" rel="noopener noreferrer" class="action-btn icon-only" title="Open Target Website in New Tab">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
           </a>
         </div>
       </div>
     </header>
 
-    <!-- Filter & Statistics Bar -->
+    <!-- Telemetry & Breakpoints Filter Sub-Bar -->
     <div class="sub-bar">
       <div class="sub-bar-left">
-        <span class="filter-title">Filter Devices:</span>
+        <span class="filter-title">Filter Viewports:</span>
         <div class="filter-pills" id="filterPills">
-          <button type="button" class="filter-pill active" data-filter="all">All Devices (<span id="countAll">7</span>)</button>
-          <button type="button" class="filter-pill" data-filter="mobile">📱 Mobile (<span id="countMobile">3</span>)</button>
-          <button type="button" class="filter-pill" data-filter="tablet">📟 Tablet (<span id="countTablet">2</span>)</button>
-          <button type="button" class="filter-pill" data-filter="desktop">🖥️ Desktop (<span id="countDesktop">2</span>)</button>
+          <button type="button" class="filter-pill active" data-filter="all">All Viewports (<span id="countAll" class="tabular">7</span>)</button>
+          <button type="button" class="filter-pill" data-filter="mobile">📱 Mobile (<span id="countMobile" class="tabular">3</span>)</button>
+          <button type="button" class="filter-pill" data-filter="tablet">📟 Tablet (<span id="countTablet" class="tabular">2</span>)</button>
+          <button type="button" class="filter-pill" data-filter="desktop">🖥️ Desktop (<span id="countDesktop" class="tabular">2</span>)</button>
         </div>
       </div>
       <div class="sub-bar-right">
-        <span class="live-url-indicator">
-          Auditing: <strong id="currentUrlDisplay">https://example.com</strong>
-        </span>
+        <div class="live-telemetry">
+          <span class="telemetry-pill">
+            <span class="status-indicator-live"></span>
+            <span>Live Stream Active</span>
+          </span>
+          <span class="live-url-indicator">
+            Target: <strong id="currentUrlDisplay">https://example.com</strong>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -106,30 +121,33 @@
     <div class="empty-state hidden" id="emptyState">
       <div class="empty-card">
         <div class="empty-icon">📱</div>
-        <h2>Enter a URL to Start Live Responsive Testing</h2>
-        <p>Preview and interact with your website side-by-side across mobile phones, tablets, and desktop resolutions.</p>
+        <h2>No Devices Configured</h2>
+        <p>You have removed all devices. Click below to restore the factory default device fleet.</p>
+        <button type="button" class="btn-primary-sm" id="emptyResetBtn" style="margin-top: 14px;">↺ Restore Default Presets</button>
       </div>
     </div>
   </div>
 
-  <!-- Device Presets Manager Modal -->
+  <!-- Device Presets Manager Modal (Linear-Inspired Glassmorphic Dialog) -->
   <div class="modal-overlay hidden" id="deviceModalOverlay">
     <div class="modal-card">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <span class="modal-icon">⚙️</span>
+          <div class="modal-icon-badge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+          </div>
           <div>
             <h2 class="modal-title">Device Presets Manager</h2>
-            <p class="modal-sub">Add custom devices, edit dimensions, remove viewports or restore default presets.</p>
+            <p class="modal-sub">Add custom viewports, fine-tune CSS pixel dimensions, or restore factory presets.</p>
           </div>
         </div>
-        <button type="button" class="modal-close-btn" id="modalCloseBtn" title="Close modal">&times;</button>
+        <button type="button" class="modal-close-btn" id="modalCloseBtn" title="Close dialog (Esc)">&times;</button>
       </div>
 
       <!-- Modal Toolbar -->
       <div class="modal-toolbar">
         <button type="button" id="btnOpenAddForm" class="btn-primary-sm">
-          <span>+ Add New Device</span>
+          <span>+ Add Custom Device</span>
         </button>
         <button type="button" id="btnResetDefaults" class="btn-secondary-sm danger-text" title="Restore original 7 default device presets">
           <span>↺ Reset to Defaults</span>
@@ -144,27 +162,27 @@
           <div class="form-grid">
             <div class="form-field">
               <label for="inputDevName">Device Name</label>
-              <input type="text" id="inputDevName" placeholder="e.g. Galaxy S24 Ultra" required autocomplete="off" />
+              <input type="text" id="inputDevName" placeholder="e.g. Samsung Galaxy S24 Ultra" required autocomplete="off" />
             </div>
             <div class="form-field">
               <label for="selectDevType">Category</label>
               <select id="selectDevType" required>
-                <option value="mobile">📱 Mobile</option>
-                <option value="tablet">📟 Tablet</option>
-                <option value="desktop">🖥️ Desktop</option>
+                <option value="mobile">📱 Mobile Phone</option>
+                <option value="tablet">📟 Tablet / Foldable</option>
+                <option value="desktop">🖥️ Laptop / Desktop</option>
               </select>
             </div>
             <div class="form-field">
               <label for="inputDevWidth">Width (px)</label>
-              <input type="number" id="inputDevWidth" min="240" max="3840" placeholder="e.g. 412" required />
+              <input type="number" id="inputDevWidth" min="200" max="3840" placeholder="e.g. 412" required />
             </div>
             <div class="form-field">
               <label for="inputDevHeight">Height (px)</label>
-              <input type="number" id="inputDevHeight" min="240" max="3840" placeholder="e.g. 915" required />
+              <input type="number" id="inputDevHeight" min="200" max="3840" placeholder="e.g. 915" required />
             </div>
           </div>
           <div class="form-actions">
-            <button type="submit" class="btn-primary-sm" id="btnSaveDevice">Save Device</button>
+            <button type="submit" class="btn-primary-sm" id="btnSaveDevice">Save Device Preset</button>
             <button type="button" class="btn-secondary-sm" id="btnCancelForm">Cancel</button>
           </div>
         </form>
