@@ -294,6 +294,28 @@ body::-webkit-scrollbar-thumb {
   font-family: ui-monospace, monospace;
 }
 
+.target-engine-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-radius: 6px;
+  padding: 6px 9px;
+  margin-top: 6px;
+  line-height: 1.35;
+}
+
+.target-engine-hint code {
+  background: rgba(14, 165, 233, 0.15);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+}
+
 /* ==========================================================================
    Segmented Tab Control (Inspired by Image 2)
    ========================================================================== */
