@@ -276,11 +276,88 @@ app.get('/api/health', (req, res) => {
     mode: PUBLIC_CLOUD_MODE ? 'cloud' : 'local',
     capabilities: {
       lighthouse: !DISABLE_LOCAL_LIGHTHOUSE,
-      security: true
+      security: true,
+      cloudLighthouse: true
     },
     port: PORT,
     activeAudit: activeAuditState
   });
+});
+
+/**
+ * GET /api/psi
+ * Cloud Lighthouse / Google PageSpeed Proxy Endpoint
+ * Routes requests through the cloud server with optional server-side PSI_API_KEY.
+ * Protected by rate limiting and SSRF guards in cloud mode.
+ */
+app.get('/api/psi', rateLimitMiddleware, async (req, res) => {
+  const targetUrl = (req.query.url || '').trim();
+  if (!targetUrl) {
+    return res.status(400).json({ ok: false, error: 'Target URL is required.' });
+  }
+
+  try {
+    await assertSafePublicUrl(targetUrl);
+  } catch (err) {
+    return res.status(400).json({ ok: false, error: err.message });
+  }
+
+  const strategy = req.query.strategy === 'desktop' ? 'desktop' : 'mobile';
+  const categories = Array.isArray(req.query.category)
+    ? req.query.category
+    : req.query.category
+      ? [req.query.category]
+      : ['performance', 'accessibility', 'best-practices', 'seo'];
+
+  const psiUrl = new URL('https://www.googleapis.com/pagespeedonline/v5/runPagespeed');
+  psiUrl.searchParams.set('url', targetUrl);
+  psiUrl.searchParams.set('strategy', strategy);
+  for (const cat of categories) {
+    psiUrl.searchParams.append('category', cat);
+  }
+
+  const apiKey = (process.env.PSI_API_KEY || req.query.key || '').trim();
+  if (apiKey) {
+    psiUrl.searchParams.set('key', apiKey);
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 55000);
+    const upstreamRes = await fetch(psiUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'SiteLens-AI-Cloud-Auditor/2.0'
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    const data = await upstreamRes.json().catch(() => ({}));
+    if (!upstreamRes.ok) {
+      const errMsg = data?.error?.message || `Google PageSpeed API HTTP ${upstreamRes.status}`;
+      return res.status(upstreamRes.status).json({
+        ok: false,
+        error: errMsg,
+        details: data?.error
+      });
+    }
+
+    return res.json({
+      ok: true,
+      strategy,
+      lighthouseResult: data.lighthouseResult
+    });
+  } catch (err) {
+    const isTimeout = err.name === 'AbortError';
+    return res.status(504).json({
+      ok: false,
+      error: isTimeout
+        ? 'Google PageSpeed Insights request timed out. Please try again.'
+        : `PageSpeed proxy failure: ${err.message}`
+    });
+  }
 });
 
 app.get('/api/status', (req, res) => {
@@ -611,11 +688,12 @@ app.post('/api/security-audit', rateLimitMiddleware, async (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     ok: true,
-    service: 'SiteLens AI Cloud Security Engine',
+    service: 'SiteLens AI Cloud Security & Speed Engine',
     version: '2.0.0',
     mode: PUBLIC_CLOUD_MODE ? 'cloud' : 'local',
     endpoints: {
       health: '/api/health',
+      psi: 'GET /api/psi',
       securityAudit: 'POST /api/security-audit'
     },
     repository: 'https://github.com/Deshan-Chandima/sitelens-ai'
