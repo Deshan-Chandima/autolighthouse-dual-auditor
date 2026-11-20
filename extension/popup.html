@@ -29,20 +29,20 @@
     <section class="card engine-settings-card hidden" id="serverSettingsPanel">
       <div class="section-header">
         <span class="section-label">Audit Engine Endpoint</span>
-        <button type="button" class="link-btn" id="resetServerUrlBtn" title="Reset to local server">Use Localhost</button>
+        <button type="button" class="link-btn" id="resetServerUrlBtn" title="Reset to default cloud server">Default Cloud</button>
       </div>
       <div class="server-url-row">
         <input
           type="url"
           id="serverUrlInput"
           class="url-input"
-          placeholder="http://localhost:9876 or https://your-api.onrender.com"
+          placeholder="https://sitelens-ai.vercel.app or http://localhost:9876"
           spellcheck="false"
         />
         <button type="button" class="secondary-btn server-save-btn" id="saveServerUrlBtn">Connect</button>
       </div>
       <p class="server-settings-hint">
-        Leave as <code>http://localhost:9876</code> for local audits, or enter your hosted Render/Koyeb URL for cloud security scans. Public sites also work automatically with zero server via Google PSI + browser fallback.
+        Default is the live cloud security engine (<code>https://sitelens-ai.vercel.app</code>). Switch to <code>http://localhost:9876</code> for local CLI audits, or audit public sites with zero setup via Google PSI.
       </p>
     </section>
 

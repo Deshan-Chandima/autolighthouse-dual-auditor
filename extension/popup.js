@@ -4,7 +4,7 @@
 
 import { renderIcon } from './icons.js';
 
-const DEFAULT_SERVER_URL = 'http://localhost:9876';
+const DEFAULT_SERVER_URL = 'https://sitelens-ai.vercel.app';
 const PSI_API_URL = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
 
 function getActiveServerUrl() {
