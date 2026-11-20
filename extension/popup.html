@@ -42,7 +42,25 @@
         <button type="button" class="secondary-btn server-save-btn" id="saveServerUrlBtn">Connect</button>
       </div>
       <p class="server-settings-hint">
-        Default is the live cloud security engine (<code>https://sitelens-ai.vercel.app</code>). Switch to <code>http://localhost:9876</code> for local CLI audits, or audit public sites with zero setup via Google PSI.
+        Default is the live cloud security engine (<code>https://sitelens-ai.vercel.app</code>). Switch to <code>http://localhost:9876</code> for local CLI audits.
+      </p>
+
+      <div class="section-header" style="margin-top: 10px;">
+        <span class="section-label">Google PageSpeed API Key</span>
+        <a href="https://developers.google.com/speed/docs/insights/v5/get-started" target="_blank" rel="noopener noreferrer" class="link-btn" title="Get free API key (25,000 queries/day, no credit card required)">Get Free Key</a>
+      </div>
+      <div class="server-url-row">
+        <input
+          type="password"
+          id="psiApiKeyInput"
+          class="url-input"
+          placeholder="Paste AIzaSy... key (Prevents Google daily quota limits)"
+          spellcheck="false"
+        />
+        <button type="button" class="secondary-btn server-save-btn" id="savePsiKeyBtn">Save</button>
+      </div>
+      <p class="server-settings-hint">
+        Optional. Prevents shared anonymous IP limits on Google PageSpeed API, or run <code>start-server.bat</code> for unlimited local audits.
       </p>
     </section>
 
