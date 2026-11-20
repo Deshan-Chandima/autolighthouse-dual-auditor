@@ -885,7 +885,9 @@ async function runAuditFlow() {
       // Check if URL can use Google PageSpeed Insights Fallback
       if (isLocalhostUrl(targetUrl)) {
         throw new Error(
-          'Local Lighthouse Engine is offline, and Google PageSpeed Insights cannot reach localhost URLs. Run start-server.bat to audit localhost sites!'
+          'Localhost sites (http://localhost:*) exist only on your computer and cannot be reached by cloud engines over the public internet.\n\n' +
+          '• For Localhost: Run "start-server.bat" to launch the local engine.\n' +
+          '• For Live Sites: Test any public URL (e.g. https://github.com or your deployed site) for instant cloud audits!'
         );
       }
       finalPayload = await runViaPageSpeedFallback({
@@ -1869,9 +1871,13 @@ async function runSecurityAuditFlow() {
 
   try {
     const serverReady = await checkLocalServerHealth();
+    const serverUrl = getActiveServerUrl();
+    const isCloudHost = !isLocalhostUrl(serverUrl);
+    const targetIsLocalhost = isLocalhostUrl(targetUrl);
     let finalSecPayload = null;
 
-    if (serverReady) {
+    // Use cloud server only for public websites. If target is localhost, run browser-native security scan!
+    if (serverReady && (!targetIsLocalhost || !isCloudHost)) {
       finalSecPayload = await runSecurityViaLocalServer({
         url: targetUrl,
         scanScope,
