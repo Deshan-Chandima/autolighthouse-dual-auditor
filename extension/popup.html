@@ -19,11 +19,32 @@
           <p class="brand-subtitle">Speed, SEO &amp; Security Suite</p>
         </div>
       </div>
-      <div class="server-pill" id="serverStatusPill" title="Click to re-check localhost:9876 connection">
+      <div class="server-pill" id="serverStatusPill" title="Click to configure Cloud / Local Engine URL or re-check connection">
         <span class="status-dot" id="serverStatusDot"></span>
         <span id="serverStatusText">Checking...</span>
       </div>
     </header>
+
+    <!-- Collapsible Engine Endpoint Config (Local vs Hosted Cloud API) -->
+    <section class="card engine-settings-card hidden" id="serverSettingsPanel">
+      <div class="section-header">
+        <span class="section-label">Audit Engine Endpoint</span>
+        <button type="button" class="link-btn" id="resetServerUrlBtn" title="Reset to local server">Use Localhost</button>
+      </div>
+      <div class="server-url-row">
+        <input
+          type="url"
+          id="serverUrlInput"
+          class="url-input"
+          placeholder="http://localhost:9876 or https://your-api.onrender.com"
+          spellcheck="false"
+        />
+        <button type="button" class="secondary-btn server-save-btn" id="saveServerUrlBtn">Connect</button>
+      </div>
+      <p class="server-settings-hint">
+        Leave as <code>http://localhost:9876</code> for local audits, or enter your hosted Render/Koyeb URL for cloud security scans. Public sites also work automatically with zero server via Google PSI + browser fallback.
+      </p>
+    </section>
 
     <!-- Primary Mode Switcher: Lighthouse vs Security vs Responsive -->
     <nav class="mode-tab-bar" role="tablist" aria-label="Audit Mode">

@@ -17,6 +17,7 @@ pnpm-debug.log*
 
 # Generated Lighthouse reports & release archives
 lighthouse-reports/
+dist/
 *.zip
 *.report.html
 *.report.json

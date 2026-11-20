@@ -4,8 +4,13 @@
 
 import { renderIcon } from './icons.js';
 
-const LOCAL_SERVER_URL = 'http://localhost:9876';
+const DEFAULT_SERVER_URL = 'http://localhost:9876';
 const PSI_API_URL = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
+
+function getActiveServerUrl() {
+  const raw = (currentSettings?.serverUrl || DEFAULT_SERVER_URL).trim();
+  return raw.replace(/\/+$/, '') || DEFAULT_SERVER_URL;
+}
 
 const CATEGORY_META = [
   { key: 'performance', label: 'Perf' },
@@ -24,6 +29,7 @@ const CORE_METRICS = [
 ];
 
 const DEFAULT_SETTINGS = {
+  serverUrl: DEFAULT_SERVER_URL,
   activeModeTab: 'lighthouse', // 'lighthouse' | 'security' | 'responsive'
   deviceMode: 'both', // 'both' | 'desktop' | 'mobile'
   throttlingMethod: 'simulate', // 'simulate' (DevTools Incognito 1:1) | 'devtools' (Applied Packet Throttling)
@@ -55,6 +61,7 @@ const DEFAULT_SETTINGS = {
 // State
 let currentSettings = structuredClone(DEFAULT_SETTINGS);
 let isServerOnline = false;
+let serverCapabilities = { lighthouse: false, security: false };
 let isAuditing = false;
 let lastAuditPayload = null;
 let lastSecurityPayload = null;
@@ -65,6 +72,10 @@ const els = {
   serverStatusPill: document.getElementById('serverStatusPill'),
   serverStatusDot: document.getElementById('serverStatusDot'),
   serverStatusText: document.getElementById('serverStatusText'),
+  serverSettingsPanel: document.getElementById('serverSettingsPanel'),
+  serverUrlInput: document.getElementById('serverUrlInput'),
+  saveServerUrlBtn: document.getElementById('saveServerUrlBtn'),
+  resetServerUrlBtn: document.getElementById('resetServerUrlBtn'),
   fallbackBanner: document.getElementById('fallbackBanner'),
   fallbackMessage: document.getElementById('fallbackMessage'),
   urlInput: document.getElementById('urlInput'),
@@ -293,6 +304,9 @@ function applySettingsToUI() {
 
   // Engine Calibration UI
   setThrottlingModeUI(currentSettings.throttlingMethod || 'simulate');
+  if (els.serverUrlInput) {
+    els.serverUrlInput.value = getActiveServerUrl();
+  }
 
   updateRunButtonLabel();
   updateSecurityButtonLabel();
@@ -356,20 +370,35 @@ async function detectActiveTabUrl() {
 async function checkLocalServerHealth() {
   els.serverStatusDot.className = 'status-dot';
   els.serverStatusText.textContent = 'Checking...';
+  const serverUrl = getActiveServerUrl();
+  const isCloudHost = !isLocalhostUrl(serverUrl);
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1800);
-    const res = await fetch(`${LOCAL_SERVER_URL}/api/health`, {
+    const timeout = setTimeout(() => controller.abort(), isCloudHost ? 4000 : 1800);
+    const res = await fetch(`${serverUrl}/api/health`, {
       method: 'GET',
       signal: controller.signal
     });
     clearTimeout(timeout);
 
     if (res.ok) {
+      let healthData = {};
+      try {
+        healthData = await res.json();
+      } catch (_) {}
+
       isServerOnline = true;
+      serverCapabilities = {
+        lighthouse: healthData?.capabilities?.lighthouse !== false,
+        security: healthData?.capabilities?.security !== false
+      };
       els.serverStatusDot.className = 'status-dot online';
-      els.serverStatusText.textContent = 'Local Engine: Online';
+      els.serverStatusText.textContent = isCloudHost
+        ? serverCapabilities.lighthouse
+          ? 'Cloud Engine: Online'
+          : 'Cloud Security + PSI'
+        : 'Local Engine: Online';
       els.fallbackBanner.classList.add('hidden');
       updateRunButtonLabel();
       return true;
@@ -379,8 +408,9 @@ async function checkLocalServerHealth() {
   }
 
   isServerOnline = false;
+  serverCapabilities = { lighthouse: false, security: false };
   els.serverStatusDot.className = 'status-dot offline';
-  els.serverStatusText.textContent = 'Local Offline (PSI Ready)';
+  els.serverStatusText.textContent = 'Cloud / PSI Mode';
   els.fallbackBanner.classList.remove('hidden');
   updateRunButtonLabel();
   return false;
@@ -434,7 +464,34 @@ function bindEvents() {
   });
 
   els.serverStatusPill.addEventListener('click', () => {
+    els.serverSettingsPanel?.classList.toggle('hidden');
+    if (els.serverUrlInput) {
+      els.serverUrlInput.value = getActiveServerUrl();
+    }
     checkLocalServerHealth();
+  });
+
+  els.saveServerUrlBtn?.addEventListener('click', async () => {
+    const val = (els.serverUrlInput?.value || '').trim().replace(/\/+$/, '');
+    if (val && !/^https?:\/\//i.test(val)) {
+      showError('Engine URL must start with http:// or https://');
+      return;
+    }
+    clearError();
+    currentSettings.serverUrl = val || DEFAULT_SERVER_URL;
+    if (els.serverUrlInput) els.serverUrlInput.value = currentSettings.serverUrl;
+    await saveSettings();
+    const ok = await checkLocalServerHealth();
+    if (ok) {
+      els.serverSettingsPanel?.classList.add('hidden');
+    }
+  });
+
+  els.resetServerUrlBtn?.addEventListener('click', async () => {
+    currentSettings.serverUrl = DEFAULT_SERVER_URL;
+    if (els.serverUrlInput) els.serverUrlInput.value = DEFAULT_SERVER_URL;
+    await saveSettings();
+    await checkLocalServerHealth();
   });
 
   els.useActiveTabBtn.addEventListener('click', () => {
@@ -793,7 +850,7 @@ async function runAuditFlow() {
     const serverReady = await checkLocalServerHealth();
     let finalPayload = null;
 
-    if (serverReady) {
+    if (serverReady && serverCapabilities.lighthouse) {
       finalPayload = await runViaLocalServer({
         url: targetUrl,
         devices,
@@ -804,7 +861,7 @@ async function runAuditFlow() {
       // Check if URL can use Google PageSpeed Insights Fallback
       if (isLocalhostUrl(targetUrl)) {
         throw new Error(
-          'Local Lighthouse Server (localhost:9876) is offline, and PageSpeed Insights cannot reach localhost URLs. Double-click start-server.bat to audit localhost sites!'
+          'Local Lighthouse Engine is offline, and Google PageSpeed Insights cannot reach localhost URLs. Run start-server.bat to audit localhost sites!'
         );
       }
       finalPayload = await runViaPageSpeedFallback({
@@ -849,7 +906,7 @@ async function runAuditFlow() {
  * Streams progress and final audit payload from the Local Node.js Lighthouse Engine (`localhost:9876`)
  */
 async function runViaLocalServer({ url, devices, categories, formats }) {
-  const response = await fetch(`${LOCAL_SERVER_URL}/api/audit`, {
+  const response = await fetch(`${getActiveServerUrl()}/api/audit`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1803,7 +1860,7 @@ async function runSecurityAuditFlow() {
 }
 
 async function runSecurityViaLocalServer({ url, scanScope, maxPages, modules }) {
-  const response = await fetch(`${LOCAL_SERVER_URL}/api/security-audit`, {
+  const response = await fetch(`${getActiveServerUrl()}/api/security-audit`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

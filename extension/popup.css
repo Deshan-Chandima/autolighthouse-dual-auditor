@@ -257,6 +257,43 @@ body::-webkit-scrollbar-thumb {
   font-family: ui-monospace, monospace;
 }
 
+/* Engine Endpoint Settings Panel */
+.engine-settings-card {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.server-url-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.server-url-row .url-input {
+  flex: 1;
+  font-size: 11px;
+  padding: 6px 8px;
+}
+
+.server-save-btn {
+  padding: 5px 10px !important;
+  white-space: nowrap;
+}
+
+.server-settings-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.server-settings-hint code {
+  background: rgba(15, 23, 42, 0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: ui-monospace, monospace;
+}
+
 /* ==========================================================================
    Segmented Tab Control (Inspired by Image 2)
    ========================================================================== */

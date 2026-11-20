@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import lighthouse, { desktopConfig } from 'lighthouse';
-import * as chromeLauncher from 'chrome-launcher';
+import dns from 'dns/promises';
+import net from 'net';
 import {
   buildSingleDeviceAiSummary,
   buildCombinedAiReport,
@@ -9,11 +9,169 @@ import {
 } from './ai-formatter.js';
 import { runSecurityAudit } from './security-scanner.js';
 
-const PORT = process.env.PORT ? Number(process.env.PORT) : 9876;
-const app = express();
+let _lhModule = null;
+let _chromeLauncherModule = null;
 
-app.use(cors({ origin: '*' }));
+async function getLighthouseDeps() {
+  if (!_lhModule) {
+    _lhModule = await import('lighthouse');
+  }
+  if (!_chromeLauncherModule) {
+    _chromeLauncherModule = await import('chrome-launcher');
+  }
+  return {
+    lighthouse: _lhModule.default,
+    desktopConfig: _lhModule.desktopConfig,
+    chromeLauncher: _chromeLauncherModule
+  };
+}
+
+const PORT = process.env.PORT ? Number(process.env.PORT) : 9876;
+const PUBLIC_CLOUD_MODE = process.env.PUBLIC_CLOUD_MODE === 'true';
+const DISABLE_LOCAL_LIGHTHOUSE = process.env.DISABLE_LOCAL_LIGHTHOUSE === 'true';
+const HOST = process.env.HOST || (PUBLIC_CLOUD_MODE ? '0.0.0.0' : '127.0.0.1');
+const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 60_000);
+const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 15);
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const app = express();
+app.set('trust proxy', 1);
+
+// Production-safe CORS: allows configured origins or chrome-extension:// + localhost
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || !PUBLIC_CLOUD_MODE) return callback(null, true);
+      if (ALLOWED_ORIGINS.length > 0) {
+        return callback(null, ALLOWED_ORIGINS.includes(origin));
+      }
+      if (
+        origin.startsWith('chrome-extension://') ||
+        origin.startsWith('moz-extension://') ||
+        origin.startsWith('http://localhost') ||
+        origin.startsWith('http://127.0.0.1')
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error('Origin not allowed by SiteLens AI CORS policy.'));
+    }
+  })
+);
 app.use(express.json({ limit: '50mb' }));
+
+/**
+ * Lightweight zero-dependency sliding-window rate limiter for Public Cloud Mode.
+ */
+const rateLimitStore = new Map();
+function rateLimitMiddleware(req, res, next) {
+  if (!PUBLIC_CLOUD_MODE) return next();
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const record = rateLimitStore.get(ip) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+
+  if (now > record.resetAt) {
+    record.count = 0;
+    record.resetAt = now + RATE_LIMIT_WINDOW_MS;
+  }
+
+  record.count += 1;
+  rateLimitStore.set(ip, record);
+
+  if (record.count > RATE_LIMIT_MAX) {
+    const retryAfterSec = Math.max(1, Math.ceil((record.resetAt - now) / 1000));
+    res.setHeader('Retry-After', String(retryAfterSec));
+    return res.status(429).json({
+      ok: false,
+      error: `Rate limit exceeded (${RATE_LIMIT_MAX} requests/min). Please retry in ${retryAfterSec}s.`
+    });
+  }
+  return next();
+}
+
+// Periodically prune stale rate-limit records
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of rateLimitStore.entries()) {
+    if (now > rec.resetAt) rateLimitStore.delete(ip);
+  }
+}, 120_000).unref?.();
+
+/**
+ * Checks whether an IPv4/IPv6 address belongs to private, loopback, link-local, or cloud metadata space.
+ */
+function isPrivateOrReservedIp(ip) {
+  if (!ip) return true;
+  const normalized = ip.replace(/^::ffff:/i, '').toLowerCase();
+  if (normalized === '::1' || normalized === '::' || normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe80:')) {
+    return true;
+  }
+  if (net.isIPv4(normalized)) {
+    const parts = normalized.split('.').map(Number);
+    const [a, b] = parts;
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true; // Cloud metadata (AWS/GCP/Azure)
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+    if (a >= 224) return true; // Multicast / reserved
+  }
+  return false;
+}
+
+/**
+ * SSRF Guard for Public Cloud Mode: blocks internal/private/loopback/cloud-metadata URLs.
+ */
+async function assertSafePublicUrl(urlStr) {
+  let parsed;
+  try {
+    parsed = new URL(urlStr);
+  } catch {
+    throw new Error('Invalid URL format.');
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Only http:// and https:// protocols are supported.');
+  }
+
+  if (!PUBLIC_CLOUD_MODE) return parsed.toString();
+
+  const host = parsed.hostname.toLowerCase();
+  if (
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    host.endsWith('.local') ||
+    host.endsWith('.internal') ||
+    host.endsWith('.localhost')
+  ) {
+    throw new Error('Scanning private or localhost addresses is disabled on the public cloud server. Run the local engine for localhost audits.');
+  }
+
+  if (net.isIP(host)) {
+    if (isPrivateOrReservedIp(host)) {
+      throw new Error('Target IP is in a private or reserved network range.');
+    }
+    return parsed.toString();
+  }
+
+  try {
+    const addresses = await dns.lookup(host, { all: true });
+    if (!addresses || addresses.length === 0) {
+      throw new Error('Unable to resolve target hostname.');
+    }
+    for (const entry of addresses) {
+      if (isPrivateOrReservedIp(entry.address)) {
+        throw new Error('Target hostname resolves to a private or reserved IP address.');
+      }
+    }
+  } catch (err) {
+    throw new Error(err.message || 'DNS resolution failed for target URL.');
+  }
+
+  return parsed.toString();
+}
 
 // Track active audit status for live status queries
 let activeAuditState = {
@@ -38,7 +196,7 @@ function updateState(patch) {
  * Build accurate official Lighthouse configuration for Desktop vs Mobile (Moto G4 / Slow 4G).
  * Supports both Simulated Throttling (1:1 match with Chrome DevTools Incognito) and Applied DevTools Throttling.
  */
-function buildLighthouseConfig(device, categories, throttlingMethod = 'simulate') {
+function buildLighthouseConfig(device, categories, throttlingMethod = 'simulate', desktopConfig = {}) {
   const onlyCategories = Array.isArray(categories) && categories.length > 0
     ? categories
     : ['performance', 'accessibility', 'best-practices', 'seo'];
@@ -106,13 +264,19 @@ function buildLighthouseConfig(device, categories, throttlingMethod = 'simulate'
 }
 
 /**
- * Health check endpoint used by the Chrome Extension popup.
+ * Health check endpoint used by the Chrome Extension popup & cloud host monitors.
  */
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     status: 'online',
     service: 'SiteLens AI Engine',
+    version: '2.0.0',
+    mode: PUBLIC_CLOUD_MODE ? 'cloud' : 'local',
+    capabilities: {
+      lighthouse: !DISABLE_LOCAL_LIGHTHOUSE,
+      security: true
+    },
     port: PORT,
     activeAudit: activeAuditState
   });
@@ -132,7 +296,14 @@ app.get('/api/status', (req, res) => {
  *   stream?: boolean
  * }
  */
-app.post('/api/audit', async (req, res) => {
+app.post('/api/audit', rateLimitMiddleware, async (req, res) => {
+  if (DISABLE_LOCAL_LIGHTHOUSE) {
+    return res.status(501).json({
+      ok: false,
+      error: 'Local Chromium Lighthouse is disabled on this lightweight cloud instance. Use Google PageSpeed Insights or the local engine.'
+    });
+  }
+
   const {
     url,
     devices = ['desktop', 'mobile'],
@@ -149,7 +320,12 @@ app.post('/api/audit', async (req, res) => {
     });
   }
 
-  const targetUrl = url.trim();
+  let targetUrl;
+  try {
+    targetUrl = await assertSafePublicUrl(url.trim());
+  } catch (err) {
+    return res.status(403).json({ ok: false, error: err.message });
+  }
   const normalizedDevices = Array.isArray(devices) && devices.length > 0
     ? devices.filter((d) => d === 'desktop' || d === 'mobile')
     : ['desktop', 'mobile'];
@@ -192,6 +368,8 @@ app.post('/api/audit', async (req, res) => {
   const summariesByDevice = {};
 
   try {
+    const { lighthouse, desktopConfig, chromeLauncher } = await getLighthouseDeps();
+
     for (let i = 0; i < normalizedDevices.length; i++) {
       const device = normalizedDevices[i];
       const stepNumber = i + 1;
@@ -238,7 +416,7 @@ app.post('/api/audit', async (req, res) => {
           port: chrome.port
         };
 
-        const lhConfig = buildLighthouseConfig(device, categories, throttlingMethod);
+        const lhConfig = buildLighthouseConfig(device, categories, throttlingMethod, desktopConfig);
         const runnerResult = await lighthouse(targetUrl, lhFlags, lhConfig);
 
         const lhr = runnerResult.lhr;
@@ -345,7 +523,7 @@ app.post('/api/audit', async (req, res) => {
  *   stream?: boolean
  * }
  */
-app.post('/api/security-audit', async (req, res) => {
+app.post('/api/security-audit', rateLimitMiddleware, async (req, res) => {
   const {
     url,
     scanScope = 'quick',
@@ -361,7 +539,12 @@ app.post('/api/security-audit', async (req, res) => {
     });
   }
 
-  const targetUrl = url.trim();
+  let targetUrl;
+  try {
+    targetUrl = await assertSafePublicUrl(url.trim());
+  } catch (err) {
+    return res.status(403).json({ ok: false, error: err.message });
+  }
   const wantStream = Boolean(stream) || (req.headers.accept && req.headers.accept.includes('application/x-ndjson'));
   if (wantStream) {
     res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
@@ -424,12 +607,12 @@ app.post('/api/security-audit', async (req, res) => {
   }
 });
 
-app.listen(PORT, '127.0.0.1', () => {
+app.listen(PORT, HOST, () => {
   console.log('==============================================================');
-  console.log(' 🚀 SiteLens AI Engine is ONLINE');
-  console.log(` 🌐 Listening at: http://localhost:${PORT}`);
-  console.log(` 🩺 Health Check: http://localhost:${PORT}/api/health`);
-  console.log(` ⚡ Audit API:    POST http://localhost:${PORT}/api/audit`);
-  console.log(` 🛡️ Security API: POST http://localhost:${PORT}/api/security-audit`);
+  console.log(` SiteLens AI Engine v2.0.0 is ONLINE (${PUBLIC_CLOUD_MODE ? 'PUBLIC CLOUD MODE' : 'LOCAL MODE'})`);
+  console.log(` Listening at: http://${HOST}:${PORT}`);
+  console.log(` Health Check: /api/health`);
+  console.log(` Audit API:    POST /api/audit (${DISABLE_LOCAL_LIGHTHOUSE ? 'disabled - PSI mode' : 'enabled'})`);
+  console.log(` Security API: POST /api/security-audit (enabled${PUBLIC_CLOUD_MODE ? ', SSRF-guarded + rate-limited' : ''})`);
   console.log('==============================================================');
 });

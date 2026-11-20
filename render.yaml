@@ -1,0 +1,29 @@
+# Render.com Blueprint — 1-Click Free Cloud Deployment for SiteLens AI Security API
+# Deploy at: https://dashboard.render.com/blueprints
+# Runs on Render Free Tier ($0/month) with SSRF protection & rate limiting enabled.
+
+services:
+  - type: web
+    name: sitelens-ai-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PUBLIC_CLOUD_MODE
+        value: "true"
+      - key: DISABLE_LOCAL_LIGHTHOUSE
+        value: "true"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: RATE_LIMIT_MAX
+        value: "15"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      # Optional: lock CORS strictly to your published Chrome Web Store extension ID
+      # - key: ALLOWED_ORIGINS
+      #   value: "chrome-extension://YOUR_PUBLISHED_EXTENSION_ID"
