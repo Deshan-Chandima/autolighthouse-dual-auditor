@@ -78,11 +78,18 @@ const DEFAULT_DEVICE_PRESETS = [
   }
 ];
 
+const TIER_META = [
+  { key: 'mobile', title: 'Mobile Breakpoints', iconName: 'smartphone' },
+  { key: 'tablet', title: 'Tablet Breakpoints', iconName: 'tablet' },
+  { key: 'desktop', title: 'Desktop & Laptop Breakpoints', iconName: 'monitor' }
+];
+
 // State
 let currentDevices = loadDevicesFromStorage();
 let currentUrl = 'https://example.com';
 let activeFilter = 'all';
 let currentGlobalScale = 0.75; // 'auto' | 0.5 | 0.75 | 1.0
+let currentLayoutMode = localStorage.getItem('sitelens_layout_mode') || 'rows'; // 'rows' | 'strip'
 let deviceStates = {}; // id -> { width, height, isLandscape }
 
 // DOM Elements
@@ -96,7 +103,9 @@ const els = {
   btnThemeToggle: document.getElementById('btnThemeToggle'),
   themeIcon: document.getElementById('themeIcon'),
   scaleControl: document.getElementById('scaleControl'),
+  layoutControl: document.getElementById('layoutControl'),
   filterPills: document.getElementById('filterPills'),
+  matrixCanvas: document.getElementById('matrixCanvas'),
   deviceGrid: document.getElementById('deviceGrid'),
   emptyState: document.getElementById('emptyState'),
   emptyResetBtn: document.getElementById('emptyResetBtn'),
@@ -127,10 +136,30 @@ document.addEventListener('DOMContentLoaded', () => {
   initUrlFromParams();
   initTheme();
   initDeviceStates();
+  applyLayoutMode(currentLayoutMode);
   renderDeviceCounts();
   renderDeviceGrid();
   bindEvents();
 });
+
+function applyLayoutMode(mode) {
+  const norm = mode === 'strip' ? 'strip' : 'rows';
+  currentLayoutMode = norm;
+  localStorage.setItem('sitelens_layout_mode', norm);
+
+  if (els.deviceGrid) {
+    els.deviceGrid.classList.toggle('layout-rows', norm === 'rows');
+    els.deviceGrid.classList.toggle('layout-strip', norm === 'strip');
+  }
+  if (els.matrixCanvas) {
+    els.matrixCanvas.classList.toggle('canvas-strip-mode', norm === 'strip');
+  }
+  if (els.layoutControl) {
+    els.layoutControl.querySelectorAll('.seg-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.layout === norm);
+    });
+  }
+}
 
 function loadDevicesFromStorage() {
   try {
@@ -226,6 +255,118 @@ function calculateAspectRatio(w, h) {
   return `${Math.round(ratio * 10) / 10}:1`;
 }
 
+function computeTierWidthRange(devicesInTier) {
+  const widths = devicesInTier.map((d) => (deviceStates[d.id]?.width ?? d.width));
+  if (widths.length === 0) return '';
+  const minW = Math.min(...widths);
+  const maxW = Math.max(...widths);
+  return minW === maxW ? `${minW}px` : `${minW}px – ${maxW}px`;
+}
+
+function updateTierRangeLabel(tierKey) {
+  const rangeEl = document.getElementById(`tierRange-${tierKey}`);
+  if (!rangeEl) return;
+  const tierDevices = currentDevices.filter((d) => d.type === tierKey);
+  rangeEl.textContent = computeTierWidthRange(tierDevices);
+}
+
+function createDeviceCardElement(dev) {
+  const state = deviceStates[dev.id] || {
+    width: dev.width,
+    height: dev.height,
+    isLandscape: dev.width > dev.height
+  };
+  deviceStates[dev.id] = state;
+
+  const scale = getScaleForDevice(dev);
+  const scaledWidth = Math.round(state.width * scale);
+  const scaledHeight = Math.round(state.height * scale);
+  const aspect = calculateAspectRatio(state.width, state.height);
+
+  const card = document.createElement('div');
+  card.className = `device-card`;
+  card.id = `card-${dev.id}`;
+  card.dataset.id = dev.id;
+  card.dataset.type = dev.type;
+
+  if (activeFilter !== 'all' && dev.type !== activeFilter) {
+    card.classList.add('hidden');
+  }
+
+  // Top Header of card with Rotate, Reload, Edit, Delete, Isolate actions
+  const devIconName = getDeviceIconName(dev);
+  const header = document.createElement('div');
+  header.className = 'device-header';
+  header.innerHTML = `
+    <div class="device-title-wrap">
+      <div class="device-name-row">
+        <span class="device-icon-badge" data-type="${dev.type}">${renderIcon(devIconName, { size: 13 })}</span>
+        <span class="device-name">${dev.name}</span>
+        <span class="device-aspect-tag">${aspect}</span>
+      </div>
+      <span class="device-dims" id="dims-${dev.id}">${state.width} × ${state.height} px (${state.isLandscape ? 'Landscape' : 'Portrait'}) • <span class="tabular">${Math.round(scale * 100)}%</span></span>
+    </div>
+    <div class="device-actions">
+      <button type="button" class="device-btn btn-rotate" title="Rotate device orientation" data-id="${dev.id}">${renderIcon('rotateCw', { size: 13 })}</button>
+      <button type="button" class="device-btn btn-reload" title="Reload this frame" data-id="${dev.id}">${renderIcon('refreshCw', { size: 13 })}</button>
+      <button type="button" class="device-btn btn-edit-device" title="Edit this device" data-id="${dev.id}">${renderIcon('pencil', { size: 13 })}</button>
+      <button type="button" class="device-btn btn-delete-device" title="Delete this device" data-id="${dev.id}">${renderIcon('trash2', { size: 13 })}</button>
+      <button type="button" class="device-btn btn-isolate" title="Open in separate tab" data-id="${dev.id}">${renderIcon('arrowUpRight', { size: 13 })}</button>
+    </div>
+  `;
+
+  // Outer Bezel Shell
+  const bezel = document.createElement('div');
+  bezel.className = 'device-bezel';
+
+  if (dev.type === 'mobile') {
+    const notch = document.createElement('div');
+    notch.className = 'notch-pill';
+    notch.innerHTML = `<span class="notch-camera-dot"></span>`;
+    bezel.appendChild(notch);
+  }
+
+  // Screen Container
+  const screenOuter = document.createElement('div');
+  screenOuter.className = 'screen-outer-container';
+  screenOuter.id = `screenOuter-${dev.id}`;
+  screenOuter.style.width = `${scaledWidth}px`;
+  screenOuter.style.height = `${scaledHeight}px`;
+
+  const screenScaled = document.createElement('div');
+  screenScaled.className = 'screen-scaled-wrapper';
+  screenScaled.id = `screenScaled-${dev.id}`;
+  screenScaled.style.width = `${state.width}px`;
+  screenScaled.style.height = `${state.height}px`;
+  screenScaled.style.transform = `scale(${scale})`;
+
+  const iframe = document.createElement('iframe');
+  iframe.className = 'device-iframe';
+  iframe.id = `iframe-${dev.id}`;
+  iframe.src = currentUrl;
+  iframe.title = `${dev.name} Viewport`;
+  iframe.loading = 'lazy';
+
+  screenScaled.appendChild(iframe);
+  screenOuter.appendChild(screenScaled);
+  bezel.appendChild(screenOuter);
+
+  if (dev.type === 'mobile') {
+    const homeBar = document.createElement('div');
+    homeBar.className = 'home-bar';
+    bezel.appendChild(homeBar);
+  } else if (dev.type === 'desktop') {
+    const chin = document.createElement('div');
+    chin.className = 'desktop-chin';
+    chin.innerHTML = `<span class="desktop-logo-dot"></span>`;
+    bezel.appendChild(chin);
+  }
+
+  card.appendChild(header);
+  card.appendChild(bezel);
+  return card;
+}
+
 function renderDeviceGrid() {
   els.deviceGrid.innerHTML = '';
 
@@ -235,101 +376,36 @@ function renderDeviceGrid() {
   }
   els.emptyState.classList.add('hidden');
 
-  for (const dev of currentDevices) {
-    const state = deviceStates[dev.id] || {
-      width: dev.width,
-      height: dev.height,
-      isLandscape: dev.width > dev.height
-    };
-    deviceStates[dev.id] = state;
+  for (const tier of TIER_META) {
+    const tierDevices = currentDevices.filter((d) => d.type === tier.key);
+    if (tierDevices.length === 0) continue;
 
-    const scale = getScaleForDevice(dev);
-    const scaledWidth = Math.round(state.width * scale);
-    const scaledHeight = Math.round(state.height * scale);
-    const aspect = calculateAspectRatio(state.width, state.height);
-
-    const card = document.createElement('div');
-    card.className = `device-card`;
-    card.id = `card-${dev.id}`;
-    card.dataset.id = dev.id;
-    card.dataset.type = dev.type;
-
-    if (activeFilter !== 'all' && dev.type !== activeFilter) {
-      card.classList.add('hidden');
+    const section = document.createElement('section');
+    section.className = 'tier-section';
+    section.dataset.tier = tier.key;
+    if (activeFilter !== 'all' && activeFilter !== tier.key) {
+      section.classList.add('hidden');
     }
 
-    // Top Header of card with Rotate, Reload, Edit, Delete, Isolate actions
-    const devIconName = getDeviceIconName(dev);
-    const header = document.createElement('div');
-    header.className = 'device-header';
-    header.innerHTML = `
-      <div class="device-title-wrap">
-        <div class="device-name-row">
-          <span class="device-icon-badge" data-type="${dev.type}">${renderIcon(devIconName, { size: 13 })}</span>
-          <span class="device-name">${dev.name}</span>
-          <span class="device-aspect-tag">${aspect}</span>
-        </div>
-        <span class="device-dims" id="dims-${dev.id}">${state.width} × ${state.height} px (${state.isLandscape ? 'Landscape' : 'Portrait'}) • <span class="tabular">${Math.round(scale * 100)}%</span></span>
-      </div>
-      <div class="device-actions">
-        <button type="button" class="device-btn btn-rotate" title="Rotate device orientation" data-id="${dev.id}">${renderIcon('rotateCw', { size: 13 })}</button>
-        <button type="button" class="device-btn btn-reload" title="Reload this frame" data-id="${dev.id}">${renderIcon('refreshCw', { size: 13 })}</button>
-        <button type="button" class="device-btn btn-edit-device" title="Edit this device" data-id="${dev.id}">${renderIcon('pencil', { size: 13 })}</button>
-        <button type="button" class="device-btn btn-delete-device" title="Delete this device" data-id="${dev.id}">${renderIcon('trash2', { size: 13 })}</button>
-        <button type="button" class="device-btn btn-isolate" title="Open in separate tab" data-id="${dev.id}">${renderIcon('arrowUpRight', { size: 13 })}</button>
-      </div>
+    const tierHeader = document.createElement('div');
+    tierHeader.className = 'tier-header';
+    tierHeader.innerHTML = `
+      <span class="tier-icon-box" data-tier="${tier.key}">${renderIcon(tier.iconName, { size: 14 })}</span>
+      <h2 class="tier-title">${tier.title}</h2>
+      <span class="tier-count-badge tabular">${tierDevices.length}</span>
+      <span class="tier-range-pill tabular" id="tierRange-${tier.key}">${computeTierWidthRange(tierDevices)}</span>
+      <span class="tier-divider"></span>
     `;
 
-    // Outer Bezel Shell
-    const bezel = document.createElement('div');
-    bezel.className = 'device-bezel';
-
-    if (dev.type === 'mobile') {
-      const notch = document.createElement('div');
-      notch.className = 'notch-pill';
-      notch.innerHTML = `<span class="notch-camera-dot"></span>`;
-      bezel.appendChild(notch);
+    const row = document.createElement('div');
+    row.className = 'tier-devices-row';
+    for (const dev of tierDevices) {
+      row.appendChild(createDeviceCardElement(dev));
     }
 
-    // Screen Container
-    const screenOuter = document.createElement('div');
-    screenOuter.className = 'screen-outer-container';
-    screenOuter.id = `screenOuter-${dev.id}`;
-    screenOuter.style.width = `${scaledWidth}px`;
-    screenOuter.style.height = `${scaledHeight}px`;
-
-    const screenScaled = document.createElement('div');
-    screenScaled.className = 'screen-scaled-wrapper';
-    screenScaled.id = `screenScaled-${dev.id}`;
-    screenScaled.style.width = `${state.width}px`;
-    screenScaled.style.height = `${state.height}px`;
-    screenScaled.style.transform = `scale(${scale})`;
-
-    const iframe = document.createElement('iframe');
-    iframe.className = 'device-iframe';
-    iframe.id = `iframe-${dev.id}`;
-    iframe.src = currentUrl;
-    iframe.title = `${dev.name} Viewport`;
-    iframe.loading = 'lazy';
-
-    screenScaled.appendChild(iframe);
-    screenOuter.appendChild(screenScaled);
-    bezel.appendChild(screenOuter);
-
-    if (dev.type === 'mobile') {
-      const homeBar = document.createElement('div');
-      homeBar.className = 'home-bar';
-      bezel.appendChild(homeBar);
-    } else if (dev.type === 'desktop') {
-      const chin = document.createElement('div');
-      chin.className = 'desktop-chin';
-      chin.innerHTML = `<span class="desktop-logo-dot"></span>`;
-      bezel.appendChild(chin);
-    }
-
-    card.appendChild(header);
-    card.appendChild(bezel);
-    els.deviceGrid.appendChild(card);
+    section.appendChild(tierHeader);
+    section.appendChild(row);
+    els.deviceGrid.appendChild(section);
   }
 
   bindCardActionEvents();
@@ -361,6 +437,8 @@ function updateDeviceCardLayout(devId) {
     screenScaled.style.height = `${state.height}px`;
     screenScaled.style.transform = `scale(${scale})`;
   }
+
+  updateTierRangeLabel(dev.type);
 }
 
 function updateAllDeviceScales() {
@@ -625,12 +703,25 @@ function bindEvents() {
     });
   });
 
+  // Layout mode switcher (Tiered Vertical Rows vs Horizontal Strip)
+  els.layoutControl?.querySelectorAll('.seg-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      applyLayoutMode(btn.dataset.layout);
+    });
+  });
+
   // Filter pills
   els.filterPills.querySelectorAll('.filter-pill').forEach((pill) => {
     pill.addEventListener('click', () => {
       els.filterPills.querySelectorAll('.filter-pill').forEach((p) => p.classList.remove('active'));
       pill.classList.add('active');
       activeFilter = pill.dataset.filter || 'all';
+
+      document.querySelectorAll('.tier-section').forEach((sec) => {
+        const tier = sec.dataset.tier;
+        const shouldShow = activeFilter === 'all' || tier === activeFilter;
+        sec.classList.toggle('hidden', !shouldShow);
+      });
 
       document.querySelectorAll('.device-card').forEach((card) => {
         const type = card.dataset.type;
