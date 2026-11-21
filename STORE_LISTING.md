@@ -1,4 +1,4 @@
-# Public Release & Store Submission Guide — SiteLens AI v2.0.0
+# Public Release & Store Submission Guide — SiteLens AI v2.0.1
 
 Everything you need to host the optional Security API for **\$0/month** and publish **SiteLens AI** to the **Chrome Web Store**, **Microsoft Edge Add-ons (\$0)**, and **GitHub Releases (\$0)**.
 
@@ -14,7 +14,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\package-extension.ps1
 
 This creates a clean, store-ready package at:
 ```text
-dist/sitelens-ai-v2.0.0-chrome-extension.zip
+dist/sitelens-ai-v2.0.1-chrome-extension.zip
 ```
 *(Automatically excludes Chrome's `_metadata/` folder and OS junk files.)*
 
