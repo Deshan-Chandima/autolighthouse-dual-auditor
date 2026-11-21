@@ -65,7 +65,7 @@ SiteLens AI provides **1-click Google Lighthouse audits (Desktop + Mobile)**, a 
 
 ### Method 1: Install from Release ZIP (Recommended for End Users & Teammates)
 
-1. Download the latest **`sitelens-ai-v2.0.0-chrome-extension.zip`** from the [Releases](https://github.com/Deshan-Chandima/sitelens-ai/releases) section or the `dist/` folder.
+1. Download the latest **`sitelens-ai-v2.0.1-chrome-extension.zip`** from the [Releases](https://github.com/Deshan-Chandima/sitelens-ai/releases) section or the `dist/` folder.
 2. Right-click the `.zip` file and select **Extract All** (Unzip).
 3. Open Google Chrome and enter `chrome://extensions` in the address bar.
 4. Turn **ON** the **Developer mode** toggle in the top-right corner.
@@ -168,7 +168,7 @@ SiteLens AI connects through our Vercel cloud proxy, which handles public querie
 ```text
 Performane/
 ├── dist/                         # Packaged release zip archives
-│   └── sitelens-ai-v2.0.0-chrome-extension.zip
+│   └── sitelens-ai-v2.0.1-chrome-extension.zip
 ├── extension/                    # Chrome Extension (Manifest V3)
 │   ├── manifest.json             # Extension manifest & permissions
 │   ├── background.js             # MV3 Service worker (downloads, badges, DNR rules)

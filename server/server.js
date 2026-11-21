@@ -272,7 +272,7 @@ app.get('/api/health', (req, res) => {
     ok: true,
     status: 'online',
     service: 'SiteLens AI Engine',
-    version: '2.0.0',
+    version: '2.0.1',
     mode: PUBLIC_CLOUD_MODE ? 'cloud' : 'local',
     capabilities: {
       lighthouse: !DISABLE_LOCAL_LIGHTHOUSE,
@@ -689,7 +689,7 @@ app.get('/', (req, res) => {
   res.json({
     ok: true,
     service: 'SiteLens AI Cloud Security & Speed Engine',
-    version: '2.0.0',
+    version: '2.0.1',
     mode: PUBLIC_CLOUD_MODE ? 'cloud' : 'local',
     endpoints: {
       health: '/api/health',
@@ -703,7 +703,7 @@ app.get('/', (req, res) => {
 if (!IS_VERCEL) {
   app.listen(PORT, HOST, () => {
     console.log('==============================================================');
-    console.log(` SiteLens AI Engine v2.0.0 is ONLINE (${PUBLIC_CLOUD_MODE ? 'PUBLIC CLOUD MODE' : 'LOCAL MODE'})`);
+    console.log(` SiteLens AI Engine v2.0.1 is ONLINE (${PUBLIC_CLOUD_MODE ? 'PUBLIC CLOUD MODE' : 'LOCAL MODE'})`);
     console.log(` Listening at: http://${HOST}:${PORT}`);
     console.log(` Health Check: /api/health`);
     console.log(` Audit API:    POST /api/audit (${DISABLE_LOCAL_LIGHTHOUSE ? 'disabled - PSI mode' : 'enabled'})`);
