@@ -1723,21 +1723,71 @@ body::-webkit-scrollbar-thumb {
   margin-top: 2px;
 }
 
-.sec-finding-card {
-  background: var(--bg-input);
+details.sec-finding-card {
+  background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  padding: 9px 11px;
+  margin-bottom: 7px;
+  overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+details.sec-finding-card:last-child {
+  margin-bottom: 0;
+}
+
+details.sec-finding-card:hover {
+  border-color: #cbd5e1;
+}
+
+details.sec-finding-card[open] {
+  border-color: rgba(225, 29, 72, 0.35);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+}
+
+.sec-finding-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+  user-select: none;
+  background: var(--bg-input);
+  transition: background 0.15s ease;
+}
+
+.sec-finding-summary:hover {
+  background: #f8fafc;
+}
+
+.sec-finding-summary::-webkit-details-marker {
+  display: none;
 }
 
 .sec-finding-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.sec-finding-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+}
+
+.sec-finding-chevron {
+  color: var(--text-muted);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+details.sec-finding-card[open] .sec-finding-chevron {
+  transform: rotate(180deg);
+  color: #e11d48;
 }
 
 .sec-finding-title {
@@ -1751,23 +1801,107 @@ body::-webkit-scrollbar-thumb {
   font-size: 10.5px;
   color: var(--text-secondary);
   line-height: 1.4;
+  padding-left: 19px;
 }
 
-.sec-finding-fix {
+.sec-finding-toggle-hint {
+  font-size: 9.5px;
+  color: #64748b;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  gap: 4px;
+  padding-left: 19px;
+  margin-top: 1px;
+}
+
+details.sec-finding-card[open] .sec-finding-toggle-hint {
+  display: none;
+}
+
+.sec-finding-body {
+  padding: 10px 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  background: #ffffff;
+}
+
+/* Risk / Threat Alert Box */
+.sec-finding-risk-box {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.sec-finding-box-header.threat {
+  display: flex;
+  align-items: center;
   gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #be123c;
+  margin-bottom: 4px;
+}
+
+.sec-finding-risk-text {
   font-size: 10px;
-  color: #0369a1;
+  color: #881337;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Fix / Remediation Box */
+.sec-finding-fix-box {
   background: #f0f9ff;
   border: 1px solid #bae6fd;
-  padding: 5px 8px;
   border-radius: 6px;
-  margin-top: 2px;
+  padding: 8px 10px;
 }
 
-.sec-finding-fix .ui-icon {
-  margin-top: 1px;
-  color: #0284c7;
+.sec-finding-box-header.fix {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #0369a1;
+  margin-bottom: 4px;
+}
+
+.sec-finding-fix-text code {
+  font-size: 9.5px;
+  color: #0c4a6e;
+  background: rgba(14, 165, 233, 0.12);
+  padding: 3px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Evidence Row */
+.sec-finding-evidence-row {
+  font-size: 9.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 2px 0 2px;
+}
+
+.sec-evidence-label {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.sec-evidence-code {
+  background: #f1f5f9;
+  padding: 1px 5px;
+  border-radius: 3px;
+  word-break: break-all;
+  color: #1e293b;
+  font-family: ui-monospace, monospace;
 }
 

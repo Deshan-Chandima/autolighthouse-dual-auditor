@@ -2343,6 +2343,81 @@ async function runSecurityViaLocalServer({ url, scanScope, maxPages, modules }) 
   return resultPayload;
 }
 
+const FINDING_RISK_MAP = {
+  // 1. HTTP Security Headers
+  'missing-csp': 'Without Content-Security-Policy (CSP), attackers can execute Cross-Site Scripting (XSS) attacks by injecting malicious scripts. Attackers can steal logged-in users\' session cookies, record keystrokes/passwords, hijack administrator accounts, or secretly redirect visitors to credential-stealing phishing pages.',
+  'weak-csp': 'Allowing \'unsafe-inline\' or \'unsafe-eval\' neutralizes CSP protections against XSS, enabling injected script tags and event handlers to execute in visitors\' browsers without restriction.',
+  'missing-hsts': 'Without HSTS, attackers on the same network (such as public Wi-Fi) can execute SSL-Stripping Man-in-the-Middle (MITM) attacks, silently downgrading HTTPS connections to unencrypted HTTP to intercept login credentials and confidential data.',
+  'short-hsts': 'An HSTS max-age under 1 year leaves returning visitors vulnerable to SSL-stripping downgrade attacks if they haven\'t accessed the site recently.',
+  'missing-clickjacking-protection': 'Attackers can embed your site in a transparent <iframe> on a malicious web page (Clickjacking attack). Unsuspecting visitors can be tricked into clicking hidden buttons to delete their accounts, change settings, or authorize payments.',
+  'missing-xfo': 'Without X-Frame-Options or CSP frame-ancestors, attackers can overlay transparent iframes over legitimate buttons, tricking authenticated users into clicking unauthorized actions (Clickjacking).',
+  'missing-x-content-type-options': 'Browsers may attempt MIME-type sniffing on uploaded files. An attacker could upload an avatar image containing executable HTML/JS, which the browser executes as code (MIME Confusion attack).',
+  'missing-xcto': 'Without nosniff, browsers can misinterpret uploaded files as executable scripts, leading to drive-by cross-site scripting attacks.',
+  'missing-referrer-policy': 'When users click outbound links or third-party resources load, sensitive URL query parameters (like password reset tokens, internal user IDs, or API keys) can leak to external third-party servers via the Referer header.',
+  'missing-permissions-policy': 'Third-party scripts and embedded iframes can silently access sensitive device hardware—including geolocation, camera, microphone, and payment request APIs—without user knowledge or restriction.',
+  'missing-coop': 'Allows cross-origin windows to retain a reference to your window object via window.opener, enabling cross-origin information leaks and Spectre-class memory timing attacks.',
+
+  // 2. SSL/TLS & Transport
+  'http-unencrypted': 'CRITICAL THREAT: All communications are transmitted in unencrypted plaintext. Anyone on the local network, ISP, or gateway can view, capture, or tamper with passwords, payment details, and private sessions in real-time.',
+  'insecure-http-protocol': 'Plain HTTP transmission allows network eavesdroppers to intercept session tokens, inject rogue advertisements, or redirect users to malicious endpoints.',
+  'deprecated-tls-version': 'TLS 1.0 and 1.1 have cryptographically compromised cipher suites vulnerable to POODLE, BEAST, and Sweet32 attacks, allowing attackers to decrypt sensitive HTTPS traffic.',
+  'tls-cert-expired': 'Browsers will display an alarming full-screen security interstitial, blocking visitors from reaching the website and breaking all customer trust and API integrations.',
+  'tls-cert-untrusted': 'A self-signed or invalid certificate prevents users from verifying your server\'s authentic identity, leaving connections vulnerable to active Man-in-the-Middle impersonation.',
+  'tls-cert-expiring-soon': 'If the TLS certificate expires, the website will immediately trigger full-page browser security blocks for all visitors, causing catastrophic downtime and transaction failures.',
+
+  // 3. Cookies & Session Security
+  'cookie-missing-secure': 'Session and authentication cookies without the \'Secure\' flag can be sent over unencrypted HTTP, allowing network eavesdroppers to intercept valid session tokens.',
+  'cookie-missing-httponly': 'Cookies without \'HttpOnly\' can be read by any JavaScript running in the page. If the site suffers even a minor XSS vulnerability, attackers can immediately steal authentication tokens to hijack accounts.',
+  'cookie-missing-samesite': 'Cookies without a SameSite attribute (or with SameSite=None without Secure) are sent automatically with cross-site requests, leaving users vulnerable to Cross-Site Request Forgery (CSRF) attacks.',
+
+  // 4. Sensitive File & Repository Exposures
+  'exposed-dotenv': 'CRITICAL THREAT: Anyone can read your .env file containing live database passwords, Stripe/payment secret keys, cloud API credentials, and JWT signing secrets. Attackers can gain complete backend server takeover within minutes.',
+  'exposed-git-repo': 'CRITICAL THREAT: Attackers can run automated tools to clone your entire Git repository from /.git, recovering proprietary source code, past commits, internal server endpoints, and hardcoded secrets.',
+  'exposed-package-json': 'Discloses your entire internal backend dependency tree and exact library versions, allowing attackers to cross-reference known CVE vulnerability databases to target unpatched packages.',
+  'exposed-phpinfo': 'Exposes complete server configuration details, including OS version, internal IP addresses, active PHP modules, file paths, and environment variables, facilitating precision attacks.',
+  'exposed-wp-config-bak': 'CRITICAL THREAT: Backup file contains plaintext database passwords, database hostnames, and security authentication salts, enabling direct remote takeover of your WordPress database.',
+  'exposed-js-sourcemap': 'Exposes original unminified frontend source code, TypeScript files, internal API routes, and developer comments, making reverse-engineering and finding vulnerabilities trivial.',
+
+  // 5. Server Leaks & CORS
+  'server-version-leak': 'Broadcasting exact web server software and version numbers helps automated vulnerability scanners find and exploit known unpatched CVEs for that specific software version.',
+  'x-powered-by-leak': 'Reveals underlying backend runtime framework (e.g., Express, PHP, ASP.NET), enabling attackers to tailor targeted framework-specific exploits.',
+  'insecure-cors-wildcard-credentials': 'CRITICAL THREAT: Combining Access-Control-Allow-Origin: * with Allow-Credentials: true permits any arbitrary website to issue authenticated requests on behalf of your users and exfiltrate private data.',
+  'cors-wildcard-origin': 'Permits any external domain to make cross-origin AJAX requests and read response data, potentially leaking sensitive user data or internal API responses.',
+
+  // 6. DOM & Client-Side Scripts
+  'mixed-content-resources': 'Loading insecure HTTP resources (scripts, stylesheets, iframes) on an HTTPS page allows network attackers to modify the unencrypted asset and take complete control over the secure page.',
+  'missing-sri-integrity': 'If a third-party CDN hosting this external script is compromised or hijacked, attackers can inject malicious JavaScript into your site without detection (supply-chain attack).',
+  'insecure-form-action': 'Form submissions (such as passwords, search queries, or personal info) are transmitted over unencrypted HTTP, allowing network interception even if the host page uses HTTPS.',
+  'unsafe-target-blank': 'Opening external links with target="_blank" without rel="noopener noreferrer" allows the destination page to access your page via window.opener and replace it with a phishing copy (Reverse Tabnabbing).'
+};
+
+function getFindingRisk(id, category = '', title = '') {
+  if (id && FINDING_RISK_MAP[id]) return FINDING_RISK_MAP[id];
+  if (id && id.startsWith('vuln-lib-')) {
+    return 'Outdated JavaScript libraries with known public CVEs allow attackers to exploit documented security flaws to execute arbitrary scripts (XSS) or crash visitor browsers.';
+  }
+  if (id && id.startsWith('exposed-')) {
+    return 'Publicly exposed internal files or directories provide attackers with sensitive architectural details, credentials, or internal configuration.';
+  }
+  const cat = (category || '').toLowerCase();
+  switch (cat) {
+    case 'headers':
+      return 'Missing defensive HTTP response headers weakens the browser\'s security sandbox, leaving the application more vulnerable to cross-site scripting and unauthorized framing.';
+    case 'cookies':
+      return 'Insecure cookie attributes increase the risk of authentication token theft via XSS, network sniffing, or Cross-Site Request Forgery (CSRF).';
+    case 'tls':
+      return 'Suboptimal transport encryption leaves user traffic vulnerable to interception, eavesdropping, or Man-in-the-Middle credential theft.';
+    case 'exposure':
+      return 'Exposing sensitive endpoints or source metadata aids threat actors in reconnaissance, reverse engineering, and credential discovery.';
+    case 'dom':
+      return 'Client-side script vulnerabilities or unpinned CDN dependencies create supply-chain risks and potential vectors for unauthorized code execution.';
+    case 'cors':
+      return 'Overly permissive Cross-Origin Resource Sharing (CORS) rules can allow external malicious sites to read private user data.';
+    default:
+      return 'Security misconfigurations weaken your overall defensive posture, creating entry points that can be chained by attackers to compromise users or servers.';
+  }
+}
+
 /**
  * Browser-Native Security Fallback when Local Server (localhost:9876) is offline.
  * Uses extension host_permissions (<all_urls>) to inspect HTTP headers, sensitive paths, and DOM.
@@ -2359,6 +2434,7 @@ async function runBrowserSecurityFallback({ url, scanScope, maxPages, modules })
   const penalties = { headers: 0, cookies: 0, tls: 0, exposure: 0, dom: 0, cors: 0 };
 
   const addFinding = (f) => {
+    f.risk = f.risk || getFindingRisk(f.id, f.category, f.title);
     findings.push(f);
     if (penalties[f.category] !== undefined) penalties[f.category] += f.penalty || 12;
   };
@@ -2506,7 +2582,10 @@ async function runBrowserSecurityFallback({ url, scanScope, maxPages, modules })
     `- **Overall Score:** **${overallScore}/100 (Grade: ${grade})**`,
     '',
     `## Findings (${findings.length})`,
-    ...findings.map((f) => `- **[${f.severity.toUpperCase()}] ${f.title}**: ${f.description} (Fix: ${f.remediation})`)
+    ...findings.map(
+      (f) =>
+        `- **[${f.severity.toUpperCase()}] ${f.title}**: ${f.description}\n  - **Potential Risk & Impact:** ${f.risk || getFindingRisk(f.id, f.category, f.title)}\n  - **Recommended Fix:** ${f.remediation}`
+    )
   ];
 
   return {
@@ -2687,20 +2766,55 @@ function renderSecurityDashboard(payload) {
       `;
     } else {
       els.secFindingsList.innerHTML = findings
-        .slice(0, 12)
-        .map((f) => {
+        .slice(0, 16)
+        .map((f, idx) => {
           const isHigh = f.severity === 'critical' || f.severity === 'high';
           const badgeClass = isHigh ? 'high-impact' : f.severity === 'medium' ? 'moderate-impact' : 'low-impact';
           const badgeLabel = f.severity.toUpperCase();
+          const riskText = f.risk || getFindingRisk(f.id, f.category, f.title);
+          const isOpen = idx === 0 ? ' open' : '';
+
           return `
-            <div class="sec-finding-card">
-              <div class="sec-finding-top">
-                <div class="sec-finding-title">${f.title}</div>
-                <span class="impact-badge ${badgeClass}">${badgeLabel}</span>
+            <details class="sec-finding-card"${isOpen}>
+              <summary class="sec-finding-summary">
+                <div class="sec-finding-top">
+                  <div class="sec-finding-title-wrap">
+                    ${renderIcon('chevronDown', { size: 12, className: 'sec-finding-chevron' })}
+                    <span class="sec-finding-title">${f.title}</span>
+                  </div>
+                  <span class="impact-badge ${badgeClass}">${badgeLabel}</span>
+                </div>
+                <div class="sec-finding-desc">${f.description}</div>
+                <div class="sec-finding-toggle-hint">
+                  ${renderIcon('alertTriangle', { size: 10 })}
+                  <span>Click to view threat risk &amp; remediation fix ▾</span>
+                </div>
+              </summary>
+              <div class="sec-finding-body">
+                <div class="sec-finding-risk-box">
+                  <div class="sec-finding-box-header threat">
+                    ${renderIcon('alertTriangle', { size: 12 })}
+                    <span>Potential Threat &amp; Risk</span>
+                  </div>
+                  <p class="sec-finding-risk-text">${riskText}</p>
+                </div>
+                ${f.remediation ? `
+                  <div class="sec-finding-fix-box">
+                    <div class="sec-finding-box-header fix">
+                      ${renderIcon('wrench', { size: 12 })}
+                      <span>Recommended Fix</span>
+                    </div>
+                    <div class="sec-finding-fix-text"><code>${f.remediation}</code></div>
+                  </div>
+                ` : ''}
+                ${f.evidence ? `
+                  <div class="sec-finding-evidence-row">
+                    <span class="sec-evidence-label">Evidence:</span>
+                    <code class="sec-evidence-code">${f.evidence}</code>
+                  </div>
+                ` : ''}
               </div>
-              <div class="sec-finding-desc">${f.description}</div>
-              ${f.remediation ? `<div class="sec-finding-fix">${renderIcon('wrench', { size: 12 })}<span><strong>Fix:</strong> ${f.remediation}</span></div>` : ''}
-            </div>
+            </details>
           `;
         })
         .join('');
