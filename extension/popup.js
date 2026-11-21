@@ -2794,7 +2794,7 @@ function renderSecurityDashboard(payload) {
                 <div class="sec-finding-risk-box">
                   <div class="sec-finding-box-header threat">
                     ${renderIcon('alertTriangle', { size: 12 })}
-                    <span>Potential Threat &amp; Risk (වෙන්න පුළුවන් හානිය)</span>
+                    <span>Potential Threat &amp; Risk</span>
                   </div>
                   <p class="sec-finding-risk-text">${riskText}</p>
                 </div>
@@ -2802,7 +2802,7 @@ function renderSecurityDashboard(payload) {
                   <div class="sec-finding-fix-box">
                     <div class="sec-finding-box-header fix">
                       ${renderIcon('wrench', { size: 12 })}
-                      <span>Recommended Fix (විසඳුම)</span>
+                      <span>Recommended Fix</span>
                     </div>
                     <div class="sec-finding-fix-text"><code>${f.remediation}</code></div>
                   </div>
